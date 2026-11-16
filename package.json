@@ -1,0 +1,17 @@
+{
+  "name": "pocketling",
+  "version": "1.0.0",
+  "description": "A tiny pocket pet that lives in real time.",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs && npx --yes serve dist"
+  },
+  "dependencies": {
+    "firebase": "^10.12.2"
+  },
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "esbuild": "^0.21.5"
+  }
+}

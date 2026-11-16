@@ -1,0 +1,37 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "profiles": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "houses": {
+      "$hid": {
+        ".read": "auth != null && data.child('members').child(auth.uid).exists()",
+        "owner": {
+          ".write": "auth != null && !data.exists() && newData.val() === auth.uid"
+        },
+        "config": {
+          ".write": "auth != null && data.parent().child('owner').val() === auth.uid"
+        },
+        "members": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && (data.parent().parent().child('owner').exists() || newData.parent().parent().child('owner').val() === auth.uid)"
+          }
+        },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && (data.parent().parent().child('members').child(auth.uid).exists() || newData.parent().parent().child('members').child(auth.uid).exists())"
+          }
+        }
+      }
+    }
+  }
+}

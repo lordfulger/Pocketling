@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pocketling</title>
+<meta name="description" content="A tiny pocket pet that lives in real time. Raise it, decorate its room, play games and visit friends.">
+<meta name="theme-color" content="#eef0fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15162a" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pocketling">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Nunito:wght@400;600;700;800&family=Caveat:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <header class="top">
+      <h1>Pocketling</h1>
+      <div class="acct" id="acct"></div>
+    </header>
+    <p class="hello" id="hello" hidden></p>
+    <div class="banner" id="banner" hidden></div>
+
+    <div class="screen-card">
+      <div class="screen-head">
+        <span class="screen-name" id="screen-name">A new egg</span>
+        <span class="pills"><span class="pill friend" id="pill-friend" hidden></span><span class="pill alert" id="pill-alert" hidden>Needs you</span></span>
+      </div>
+      <div class="screen-wrap"><canvas id="screen" width="400" height="280" role="img" aria-label="Your pet's room. Tap your pet to cuddle it."></canvas></div>
+    </div>
+
+    <div class="card" id="egg-pick" hidden>
+      <h2 id="egg-title">Choose your egg</h2>
+      <p class="small" id="egg-sub">Each egg hatches into a different animal.</p>
+      <div class="eggs" id="eggs"></div>
+    </div>
+
+    <div class="actions" id="actions" aria-label="Care"></div>
+    <div class="card" id="game-pick" hidden>
+      <div class="pick-head"><h2>Pick a game</h2><button class="ghost" type="button" id="pick-cancel">Back</button></div>
+      <div class="games" id="games"></div>
+    </div>
+    <div class="game-controls" id="game-pad" hidden aria-label="Game controls"></div>
+    <p class="keys" id="keys">Tap your pet to cuddle it. On a keyboard, keys 1 to 8 match the buttons.</p>
+  </div>
+
+  <div class="right">
+    <div class="card away" id="away" hidden>
+      <h2 id="away-title">While you were away</h2>
+      <p id="away-sub"></p>
+      <ul class="list" id="away-list"></ul>
+      <div class="row-btns"><button class="ghost" id="away-close" type="button">Got it</button></div>
+    </div>
+
+    <div class="card" aria-live="polite">
+      <div class="pet-head">
+        <h2 class="pet-name" id="pet-name">A new egg</h2>
+        <button class="link" id="rename-btn" type="button" hidden>Rename</button>
+      </div>
+      <p class="pet-meta" id="pet-meta"></p>
+      <div class="meters" id="meters">
+        <div class="meter"><span>Hunger</span><span class="hearts" id="m-hunger"></span></div>
+        <div class="meter"><span>Happy</span><span class="hearts" id="m-happy"></span></div>
+        <div class="meter"><span>Manners</span><span class="bar"><i id="m-disc" style="width:0%"></i></span></div>
+      </div>
+      <div class="needs" id="needs"></div>
+      <div class="facts" id="facts"></div>
+      <button class="primary full" id="letter-btn" type="button" hidden>Read the letter it brought you</button>
+      <button class="primary full" id="newegg-btn" type="button" hidden>Start a new egg</button>
+      <form class="name-form" id="name-form" hidden>
+        <label for="name-input" id="name-label">It hatched! What will you call it?</label>
+        <input type="text" id="name-input" maxlength="14" autocomplete="off" enterkeyhint="done" placeholder="Mochi">
+        <button class="primary" type="submit">Save name</button>
+        <button class="ghost" type="button" id="name-cancel" hidden>Cancel</button>
+      </form>
+      <div class="row-btns"><button class="ghost" id="photo-btn" type="button">Save a photo</button></div>
+      <p class="small" id="sync" style="margin:12px 0 0;font-size:12px"></p>
+    </div>
+
+    <div class="card" id="together">
+      <h2>Play together</h2>
+      <div id="together-body"></div>
+      <div id="invite" class="invite" hidden><p id="invite-text"></p><div class="row-btns" style="margin:0"><button class="primary" id="invite-yes" type="button">Yes!</button><button class="ghost" id="invite-no" type="button">Not now</button></div></div>
+      <div id="friends"></div>
+      <div class="together-btns" id="together-btns" hidden>
+        <button class="ghost" type="button" id="t-hearts">Send hearts</button>
+        <button class="ghost" type="button" id="t-snack">Share a snack</button>
+        <button class="ghost" type="button" id="t-dance">Dance together</button>
+        <button class="primary" type="button" id="t-catch">Catch stars together</button>
+        <button class="primary" type="button" id="t-marry" hidden>Propose</button>
+        <button class="primary" type="button" id="t-baby" hidden>Start a family</button>
+      </div>
+      <p class="small" id="together-note" style="margin-top:10px"></p>
+      <div class="invite-link" id="invite-row" hidden>
+        <input type="text" id="invite-url" readonly aria-label="Invite link">
+        <button class="ghost" type="button" id="invite-copy">Copy invite link</button>
+      </div>
+    </div>
+
+    <div class="card" id="family-card" hidden>
+      <h2>Family</h2>
+      <div id="family"></div>
+    </div>
+
+    <div class="card" id="letters-card" hidden>
+      <details open>
+        <summary>Letters <span class="count" id="letters-count"></span></summary>
+        <ul class="letters" id="letters"></ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <details id="deco-details">
+        <summary>Decorate <span class="count">Room and pet</span></summary>
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" type="button" id="tab-room" aria-selected="true" aria-controls="deco-room">Room</button>
+          <button class="tab" role="tab" type="button" id="tab-pet" aria-selected="false" aria-controls="deco-pet">Pet</button>
+        </div>
+        <div id="deco-room" role="tabpanel" aria-labelledby="tab-room"></div>
+        <div id="deco-pet" role="tabpanel" aria-labelledby="tab-pet" hidden></div>
+        <div class="row-btns">
+          <button class="ghost" type="button" id="deco-random">Surprise me</button>
+          <button class="ghost" type="button" id="deco-reset">Reset</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Diary <span class="count">Recent events</span></summary>
+        <ul class="list" id="diary"></ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <details id="book-details">
+        <summary>Pet book <span class="count" id="book-count"></span></summary>
+        <p class="small">Every kind of pet you've raised. Each animal grows into one of four adults depending on how well it's cared for. The starry ones are only for perfect parents.</p>
+        <div id="book"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>How to take care of it</summary>
+        <ul class="guide" id="guide"></ul>
+        <h2 style="margin-top:18px">How it grows</h2>
+        <div class="path"><span>Egg</span><i>→</i><span>Baby</span><i>→</i><span>Child</span><i>→</i><span>Teen</span><i>→</i><span>Adult</span></div>
+        <p class="small">The egg hatches after a minute. The baby needs a lot of attention for its first hour, then grows into a child. It becomes a teen after one day and an adult after three. Care mistakes and manners decide which teen and adult it becomes.</p>
+        <p class="small">Children go to bed around 8 pm and older pets between 9 and 11 pm. They wake up around 8 to 10 am. A well-kept adult lives for two to three weeks.</p>
+        <h2 style="margin-top:18px">Friends, marriage and babies</h2>
+        <p class="small">Create a home and send the invite link to someone special. When you both have Pocketling open, your pets visit each other, play and grow closer. Two adult pets with full friendship hearts can marry. Married pets can start a family: each of you gets the baby's egg, and you can raise it when your current pet passes on.</p>
+        <p class="small">To keep it one tap away, add this page to your home screen: in Safari use Share, then Add to Home Screen; in Chrome use the menu, then Install app or Add to Home screen.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="set-row" id="acct-row">
+        <div><b>Account</b><span id="acct-text">Sign in with Google to save your pet and play with friends.</span></div>
+        <button class="ghost" id="acct-btn" type="button">Sign in</button>
+      </div>
+      <div class="set-row">
+        <div><b>Sound</b><span>Beeps when it needs you, while the page is open</span></div>
+        <label class="switch"><input type="checkbox" id="opt-sound" aria-label="Sound"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Quiet nights</b><span>No beeps from 10 pm to 8 am</span></div>
+        <label class="switch"><input type="checkbox" id="opt-quiet" aria-label="Quiet nights"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Babysitter</b><span>Pauses time while you're busy. Nothing happens until you switch it off.</span></div>
+        <label class="switch"><input type="checkbox" id="opt-pause" aria-label="Babysitter (pause time)"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Helpful hints</b><span>Thought bubbles on screen and to-do chips here</span></div>
+        <label class="switch"><input type="checkbox" id="opt-hints" aria-label="Helpful hints"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Visiting pets</b><span>Show friends' pets in your room while they're here</span></div>
+        <label class="switch"><input type="checkbox" id="opt-visitors" aria-label="Visiting pets"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Move a pet between devices</b><span>Copy a save code here, then paste it on the other device. Also works for pets from the old Claude page.</span></div>
+        <div class="stack">
+          <button class="ghost" id="code-copy" type="button">Copy save code</button>
+          <button class="ghost" id="code-load-open" type="button">Load a save code</button>
+          <textarea class="code" id="code-out" readonly hidden aria-label="Your save code"></textarea>
+          <textarea class="code" id="code-in" hidden aria-label="Paste a save code" placeholder="Paste a save code here"></textarea>
+          <button class="primary" id="code-load" type="button" hidden>Replace my pet with this one</button>
+          <p class="status-line" id="code-status" role="status"></p>
+        </div>
+      </div>
+      <div class="set-row" id="leave-row" hidden>
+        <div><b>Leave this home</b><span>Your pet stays with you. You'll need a new invite to come back.</span></div>
+        <button class="ghost" id="leave-btn" type="button">Leave home</button>
+      </div>
+      <div class="set-row">
+        <div><b>Start a new egg</b><span>Begins the next generation</span></div>
+        <button class="ghost" id="reset-btn" type="button">New egg</button>
+        <div class="confirm" id="reset-confirm" hidden>
+          <p id="reset-text">Your current pet will be gone for good.</p>
+          <button class="primary" id="reset-yes" type="button">Yes, start over</button>
+          <button class="ghost" id="reset-no" type="button">Keep it</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card owner" id="owner-card" hidden>
+      <h2>Make it personal</h2>
+      <p class="small">Only you see this panel because you created this home. What you save shows up for everyone in it.</p>
+      <form id="owner-form">
+        <div class="two">
+          <div class="field"><label for="cfg-her">Her name</label><input type="text" id="cfg-her" maxlength="30" autocomplete="off"><small>Used in greetings and on special days</small></div>
+          <div class="field"><label for="cfg-from">Sign letters as</label><input type="text" id="cfg-from" maxlength="30" autocomplete="off"><small>For example "Love, Sam"</small></div>
+        </div>
+        <div class="field"><label for="cfg-welcome">Welcome note</label><textarea id="cfg-welcome" maxlength="1200" rows="4"></textarea><small>Opens the first time she visits. She can reread it under Letters.</small></div>
+        <div class="field"><label for="cfg-notes">Love notes</label><textarea id="cfg-notes" maxlength="8000" rows="6"></textarea><small>One note per line. Her pet brings one about twice a day, in order, while it's awake.</small></div>
+        <div class="two">
+          <div class="field"><label for="cfg-bday">Her birthday</label><input type="date" id="cfg-bday"><small>Party hats and confetti all day</small></div>
+          <div class="field"><label for="cfg-anniv">Your anniversary</label><input type="date" id="cfg-anniv"><small>The year is used to count years together</small></div>
+        </div>
+        <div class="field"><label for="cfg-petname">Suggested pet name</label><input type="text" id="cfg-petname" maxlength="14" autocomplete="off"><small>Suggested when an egg hatches</small></div>
+        <div class="row-btns">
+          <button class="primary" type="submit">Save personal touches</button>
+          <button class="ghost" type="button" id="cfg-preview">Preview a letter</button>
+          <button class="ghost" type="button" id="cfg-nudge">Deliver next note now</button>
+        </div>
+        <p class="status-line" id="cfg-status" role="status"></p>
+      </form>
+    </div>
+
+    <div class="card" id="memories-card" hidden>
+      <h2>In memory</h2>
+      <ul class="memories" id="memories"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="p-head">
+  <div class="paper">
+    <p class="p-head" id="p-head">A letter</p>
+    <p class="p-body" id="p-body"></p>
+    <p class="p-sign" id="p-sign"></p>
+    <div class="p-btns"><button class="primary" id="p-close" type="button">Close</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
