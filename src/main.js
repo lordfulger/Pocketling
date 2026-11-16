@@ -3,7 +3,7 @@ import {
   LW, LH, CX, FLOOR, OUT, ART, R, art, text, textC, textW, cleanLabel, panel, mix,
   FAMILIES, FAMILY_ORDER, STAGE_LABEL, BOOK_STAGES, getSpec, formId, GHOST, drawCreature, drawEgg,
   COATS, HEADWEAR, FACEWEAR, NECKWEAR, DEFAULT_STYLE,
-  WALLS, FLOORS, WINDOWS, CURTAINS, ARTS, CEILINGS, ITEMS, RUGS, DEFAULT_DECOR, drawRoom, drawGlow, STAR_PTS,
+  WALLS, FLOORS, WINDOWS, CURTAINS, ARTS, CEILINGS, ITEMS, RUGS, DEFAULT_DECOR, drawRoom, drawGlow, STAR_PTS, holidayAt,
 } from "./draw.js";
 import { GAMES, GAME_BY_ID } from "./games.js";
 import { createNet } from "./net.js";
@@ -27,6 +27,70 @@ const STAGES = {
   teen:  { hunger: 55, happy: 60, poop: 150, sleep: [21, 9], mis: true },
   adult: { hunger: 75, happy: 80, poop: 180, sleep: [22, 9], mis: true },
 };
+/* ===================== shop, food, traits, achievements, goals ===================== */
+const FOODS = {
+  riceball: { name: "Rice ball", kind: "meal", art: "meal", price: 0, hunger: 1, weight: 1 },
+  salad:    { name: "Salad", kind: "meal", art: "salad", price: 5, hunger: 1, weight: -1 },
+  pancake:  { name: "Pancakes", kind: "meal", art: "pancake", price: 6, hunger: 1, happy: 1, weight: 2 },
+  fish:     { name: "Grilled fish", kind: "meal", art: "fish", price: 8, hunger: 2, weight: 1 },
+  noodles:  { name: "Noodles", kind: "meal", art: "noodles", price: 8, hunger: 2, weight: 2 },
+  cupcake:  { name: "Cupcake", kind: "snack", art: "snack", price: 0, happy: 1, weight: 2, sugar: 1 },
+  berry:    { name: "Strawberry", kind: "snack", art: "berry", price: 3, happy: 1, weight: 0 },
+  candy:    { name: "Lollipop", kind: "snack", art: "candy", price: 2, happy: 1, weight: 1, sugar: 2 },
+  cookie:   { name: "Cookie", kind: "snack", art: "cookie", price: 3, happy: 1, weight: 1, sugar: 1 },
+  icecream: { name: "Ice cream", kind: "snack", art: "icecream", price: 6, happy: 1, weight: 2, sugar: 1 },
+  cake:     { name: "Party cake", kind: "snack", art: "cake", price: 15, happy: 2, weight: 3, sugar: 2 },
+};
+const TRAITS = {
+  playful: { name: "Playful", text: "Loves games. Earns extra coins and happiness from winning." },
+  foodie:  { name: "Foodie", text: "Gets hungry faster and goes wild for its favourite food." },
+  sleepy:  { name: "Sleepy", text: "Goes to bed an hour early and sleeps in an hour late." },
+  neat:    { name: "Neat", text: "Makes messes less often." },
+  cuddly:  { name: "Cuddly", text: "Stays happy longer and loves cuddles." },
+  brave:   { name: "Brave", text: "Rarely gets sick and needs only one dose of medicine." },
+};
+const TRAIT_KEYS = Object.keys(TRAITS);
+const PRICES = {
+  "wall.rainbow": 40, "wall.ocean": 40, "wall.candy": 35, "floor.cloud": 40, "floor.sakura": 35,
+  "art.moon": 30, "art.poster": 25, "ceiling.clouds": 35, "ceiling.disco": 60,
+  "item.piano": 60, "item.tv": 50, "item.castle": 45, "item.tree": 40, "rug.rainbow": 30,
+  "coat.cherry": 40, "coat.galaxy": 60, "coat.gold": 90,
+  "head.sunhat": 25, "head.tiara": 45, "head.bunnyband": 35, "head.witch": 40, "head.santa": 40, "head.halo": 70,
+  "face.monocle": 30, "face.mask": 30, "neck.lei": 30, "neck.medal": 80,
+};
+const ACH = [
+  ["hatch", "First hatch", "Hatch your first egg", s => (s.stats.hatched || 0) >= 1, 10],
+  ["adult", "All grown up", "Raise a pet to adulthood", s => (s.stats.adults || 0) >= 1, 20],
+  ["starry", "Perfect parent", "Raise a starry adult", s => (s.stats.starry || 0) >= 1, 60],
+  ["zoo4", "Zookeeper", "Hatch 4 different animals", s => Object.keys(s.stats.families || {}).length >= 4, 30],
+  ["zoo8", "Full zoo", "Hatch all 8 animals", s => Object.keys(s.stats.families || {}).length >= 8, 100],
+  ["wins10", "Game on", "Win 10 games", s => (s.stats.wins || 0) >= 10, 20],
+  ["wins50", "Champion", "Win 50 games", s => (s.stats.wins || 0) >= 50, 60],
+  ["clean", "Squeaky clean", "Clean up 25 messes", s => (s.stats.cleans || 0) >= 25, 15],
+  ["tried", "Food critic", "Try every food", s => Object.keys(s.tried || {}).length >= Object.keys(FOODS).length, 30],
+  ["fav", "Favourite things", "Feed its favourite food 10 times", s => (s.stats.favFed || 0) >= 10, 15],
+  ["manners", "Perfect manners", "Reach full manners", s => (s.stats.manners || 0) >= 1, 15],
+  ["bff", "Best friends", "Fill all friendship hearts with someone", s => Object.values(s.bond || {}).some(v => v >= 5) || (s.stats.bff || 0) >= 1, 25],
+  ["married", "Happily married", "Get married", s => (s.stats.married || 0) >= 1, 40],
+  ["family", "Family tree", "Have an egg together", s => (s.stats.babies || 0) >= 1, 40],
+  ["gen3", "Generations", "Raise a third generation", s => s.gen >= 3, 50],
+  ["mail", "Pen pal", "Send 10 letters", s => (s.stats.mailSent || 0) >= 10, 20],
+  ["photos", "Photographer", "Add 5 photos to the album", s => (s.stats.photos || 0) >= 5, 15],
+  ["shop", "Interior designer", "Buy 5 things in the shop", s => (s.stats.bought || 0) >= 5, 20],
+  ["streak7", "Every day", "Visit 7 days in a row", s => (s.bestStreak || 0) >= 7, 30],
+  ["streak30", "Devoted", "Visit 30 days in a row", s => (s.bestStreak || 0) >= 30, 120],
+];
+const GOAL_POOL = [
+  { key: "meals", text: "Feed your pets 20 meals", target: 20 }, { key: "wins", text: "Win 12 games", target: 12 },
+  { key: "cleans", text: "Clean up 15 messes", target: 15 }, { key: "playdates", text: "Have 8 playdates", target: 8 },
+  { key: "together", text: "Play 5 two-player games", target: 5 }, { key: "letters", text: "Send each other 6 letters", target: 6 },
+  { key: "cuddles", text: "Cuddle your pets 30 times", target: 30 }, { key: "snacks", text: "Hand out 15 treats", target: 15 },
+];
+const GOAL_REWARD = 50;
+function weekId() { return Math.floor((Date.now() + 3 * DAY) / (7 * DAY)); }
+function weekGoals() { const r = mulberry(weekId() * 7919); const pool = GOAL_POOL.slice(); const out = []; while (out.length < 3) out.push(pool.splice(Math.floor(r() * pool.length), 1)[0]); return out; }
+function dayKey(t) { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+
 const OLD_FORMS = { pip: "kitten.baby.n", tuft: "kitten.child.n", bean: "kitten.teen.good", spud: "kitten.teen.poor", lumi: "kitten.adult.good", starla: "kitten.adult.star", puff: "kitten.adult.ok", bramble: "kitten.adult.poor", smudge: "kitten.adult.poor" };
 
 /* ===================== state ===================== */
@@ -58,6 +122,11 @@ function newPet(prev, opts = {}) {
     letterPending: false, nextLetterAt: 0,
     welcomeShown: prev ? !!prev.welcomeShown : false, lastNudge: prev ? prev.lastNudge || 0 : 0,
     gifts: {}, bond: {}, bondT: {}, partner: null, lastBaby: 0,
+    coins: prev ? prev.coins || 0 : 30, owned: prev ? Object.assign({}, prev.owned) : {}, pantry: prev ? Object.assign({}, prev.pantry) : {},
+    trait: null, fav: null, dislike: null, parentTraits: opts.parentTraits || null, tried: prev ? Object.assign({}, prev.tried) : {},
+    stats: prev ? Object.assign({}, prev.stats) : {}, ach: prev ? Object.assign({}, prev.ach) : {}, claimed: prev ? Object.assign({}, prev.claimed) : {},
+    streak: prev ? prev.streak || 0 : 0, bestStreak: prev ? prev.bestStreak || 0 : 0, lastDay: prev ? prev.lastDay || "" : "",
+    music: prev ? !!prev.music : false, useWeather: prev ? !!prev.useWeather : false, geo: prev ? prev.geo || null : null, weather: prev ? prev.weather || null : null, pushOn: prev ? !!prev.pushOn : false,
   };
 }
 function migrate(o) {
@@ -66,7 +135,9 @@ function migrate(o) {
   o.decor = Object.assign({}, DEFAULT_DECOR, o.decor);
   o.style = Object.assign({}, DEFAULT_STYLE, o.style);
   if (!o.calls) o.calls = d.calls;
-  for (const k of ["gifts", "bond", "bondT", "best", "seen"]) if (!o[k] || typeof o[k] !== "object") o[k] = {};
+  for (const k of ["gifts", "bond", "bondT", "best", "seen", "owned", "pantry", "tried", "stats", "ach", "claimed"]) if (!o[k] || typeof o[k] !== "object") o[k] = {};
+  if (o.stage !== "egg" && o.stage !== "dead" && !o.trait) { o.trait = TRAIT_KEYS[rand(0, TRAIT_KEYS.length - 1)]; const priced = Object.keys(FOODS).filter(k => FOODS[k].price > 0); o.fav = priced[rand(0, priced.length - 1)]; o.dislike = priced.filter(k => k !== o.fav)[rand(0, priced.length - 2)]; }
+  if (o.stage !== "egg" && o.stage !== "dead" && o.family) { o.stats.families = Object.assign({}, o.stats.families, { [o.family]: 1 }); }
   if (!Array.isArray(o.heirs)) o.heirs = [];
   if (OLD_FORMS[o.form]) { o.form = OLD_FORMS[o.form]; o.family = "kitten"; }
   for (const k of Object.keys(o.seen)) if (OLD_FORMS[k]) { o.seen[OLD_FORMS[k]] = 1; delete o.seen[k]; }
@@ -83,7 +154,8 @@ function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(S)); } cat
 function petSpec() { return getSpec(S.form) || getSpec(formId(S.family || "kitten", "baby", "n")); }
 function miniSpec() { return getSpec(formId(S.family || "kitten", "baby", "n")); }
 function inWin(h, w) { return w[0] > w[1] ? (h >= w[0] || h < w[1]) : (h >= w[0] && h < w[1]); }
-function sleepWindow() { const sp = getSpec(S.form); return (sp && sp.sleep) || (STAGES[S.stage] && STAGES[S.stage].sleep); }
+function sleepWindow() { const sp = getSpec(S.form); const w = (sp && sp.sleep) || (STAGES[S.stage] && STAGES[S.stage].sleep); if (w && S.trait === "sleepy") return [(w[0] + 23) % 24, (w[1] + 1) % 24]; return w; }
+function isElder() { return S.stage === "adult" && S.lifeDays && Date.now() - S.born > (S.lifeDays - 3) * DAY; }
 function ageDays(t) { return S.born ? Math.max(0, Math.floor(((S.stage === "dead" ? S.deadAt : t) - S.born) / DAY)) : 0; }
 function baseWeight() { const sp = getSpec(S.form); return sp ? sp.base : 5; }
 function alive() { return !!S && S.stage !== "egg" && S.stage !== "dead"; }
@@ -98,6 +170,10 @@ function hatch(t) {
   S.hunger = 1; S.happy = 1; S.weight = 5; S.mistakes = 0;
   S.hT = jitter(STAGES.baby.hunger); S.pT = jitter(STAGES.baby.happy); S.poopT = jitter(STAGES.baby.poop);
   S.seen[S.form] = 1; S.nextLetterAt = t + 20 * MIN;
+  S.trait = S.parentTraits && Math.random() < 0.6 ? S.parentTraits[rand(0, S.parentTraits.length - 1)] : TRAIT_KEYS[rand(0, TRAIT_KEYS.length - 1)];
+  const priced = Object.keys(FOODS).filter(k => FOODS[k].price > 0);
+  S.fav = priced[rand(0, priced.length - 1)]; S.dislike = priced.filter(k => k !== S.fav)[rand(0, priced.length - 2)];
+  S.stats.hatched = (S.stats.hatched || 0) + 1; S.stats.families = Object.assign({}, S.stats.families, { [S.family]: 1 });
   log(t, `Hatched into a baby ${FAMILIES[S.family].name.toLowerCase()}!`);
   if (LIVE) { play("hatch", 4200); sfx("tune"); }
 }
@@ -121,6 +197,8 @@ function evolve(t) {
   const c = STAGES[stage];
   S.hT = Math.min(S.hT, jitter(c.hunger)); S.pT = Math.min(S.pT, jitter(c.happy));
   log(t, `Grew up into a ${nsp.label}!`);
+  earn(stage === "adult" ? (variant === "star" ? 60 : 25) : 15);
+  if (stage === "adult") { S.stats.adults = (S.stats.adults || 0) + 1; if (variant === "star") S.stats.starry = (S.stats.starry || 0) + 1; }
   if (LIVE) { play("evolve", 4200, { from, to: S.form }); sfx("tune"); }
 }
 function getSick(t) { S.sick = true; S.doses = Math.random() < 0.4 ? 2 : 1; S.sickMin = 0; log(t, "Caught a bug and feels sick"); if (LIVE) sfx("alert"); }
@@ -141,12 +219,12 @@ function step(t) {
   if (!should && S.asleep) { S.asleep = false; S.lightsOff = false; closeCall("lights"); log(t, "Woke up"); }
   if (S.asleep) { if (S.lightsOff) closeCall("lights"); checkCalls(t); return; }
   if (S.evolveAt && t >= S.evolveAt) { evolve(t); return; }
-  if (--S.hT <= 0) { S.hunger = Math.max(0, S.hunger - 1); S.hT = jitter(cfg.hunger); }
-  if (--S.pT <= 0) { S.happy = Math.max(0, S.happy - 1); S.pT = jitter(cfg.happy); }
+  if (--S.hT <= 0) { S.hunger = Math.max(0, S.hunger - 1); S.hT = jitter(cfg.hunger * (S.trait === "foodie" ? 0.75 : 1)); }
+  if (--S.pT <= 0) { S.happy = Math.max(0, S.happy - 1); S.pT = jitter(cfg.happy * (S.trait === "cuddly" ? 1.2 : 1)); }
   if (S.hunger === 0) openCall("hunger", t);
   if (S.happy === 0) openCall("happy", t);
-  if (--S.poopT <= 0) { if (S.poops < 4) { S.poops++; log(t, "Made a mess"); } S.poopT = jitter(cfg.poop); }
-  if (!S.sick) { const p = S.poops * 0.0007 + (S.weight > baseWeight() * 2 ? 0.0008 : 0) + 0.00003; if (Math.random() < p) getSick(t); }
+  if (--S.poopT <= 0) { if (S.poops < 4) { S.poops++; log(t, "Made a mess"); } S.poopT = jitter(cfg.poop * (S.trait === "neat" ? 1.35 : 1)); }
+  if (!S.sick) { const p = (S.poops * 0.0007 + (S.weight > baseWeight() * 2 ? 0.0008 : 0) + 0.00003) * (S.trait === "brave" ? 0.5 : 1); if (Math.random() < p) getSick(t); }
   else if (++S.sickMin > 10 * 60) { die(t, "illness"); return; }
   if (S.hunger === 0) { if (++S.starveMin > 12 * 60) { die(t, "hunger"); return; } } else S.starveMin = 0;
   if (S.snackStreak > 0 && --S.snackT <= 0) { S.snackStreak--; S.snackT = 60; }
@@ -175,6 +253,9 @@ const net = window.POCKETLING_NET || createNet(window.POCKETLING_FIREBASE);
 let me = null;            // { uid, name, photo }
 let hid = null, house = null, unwatchHouse = null, pres = null;
 let joinHid = new URLSearchParams(location.search).get("join");
+let unwatchMail = null, mail = {}, visitUid = null;
+const memberNames = {};
+async function loadNames(uids) { for (const u of uids) if (!(u in memberNames) && net) { memberNames[u] = ""; const p = await net.profile(u); memberNames[u] = (p && p.name) || "Friend"; renderMail(); renderAlbum(); } }
 let saving = false, lastRemote = 0, remoteTimer = null;
 const snow = () => net ? net.serverNow() : Date.now();
 
@@ -184,6 +265,14 @@ function markDirty(important) {
   if (!me || !net) return;
   if (important) { clearTimeout(remoteTimer); remoteTimer = setTimeout(pushRemote, 2000); }
   else if (Date.now() - lastRemote > 2 * MIN) pushRemote();
+  scheduleAlerts(false);
+}
+let lastAlerts = 0;
+function scheduleAlerts(force) {
+  if (!me || !net || !S.pushOn) return;
+  if (!force && Date.now() - lastAlerts < 3 * MIN) return;
+  lastAlerts = Date.now();
+  net.saveAlerts(me.uid, predictAlerts());
 }
 function pushRemote() {
   if (!me || !net || saving) return;
@@ -212,9 +301,12 @@ async function onSignedIn(user) {
     if (joinHid && joinHid === hid) { joinHid = null; cleanUrl(); }
     if (hid) watchHouse(hid);
   } catch (e) {}
+  if (unwatchMail) unwatchMail();
+  unwatchMail = net.watchMail(me.uid, v => { mail = v; renderMail(); renderPanel(true); });
   refreshAll();
 }
 function onSignedOut() {
+  if (unwatchMail) unwatchMail(); unwatchMail = null; mail = {};
   me = null; if (unwatchHouse) unwatchHouse(); unwatchHouse = null; hid = null; house = null; pres = null; CFG = Object.assign({}, BAKED, { notes: [] });
   refreshAll();
 }
@@ -223,7 +315,15 @@ function watchHouse(id) {
   if (unwatchHouse) unwatchHouse();
   hid = id;
   pres = net.presence(hid, me.uid);
-  unwatchHouse = net.watchHouse(hid, data => { house = data || {}; onHouse(); }, () => { toast("Lost access to your home."); house = null; refreshAll(); });
+  house = { presence: {}, members: {}, goals: {}, album: {} };
+  unwatchHouse = net.watchHouse(hid, {
+    owner: v => { if (house) { house.owner = v; onHouse(); } },
+    members: v => { if (house) { house.members = v; loadNames(Object.keys(v)); onHouse(); } },
+    config: v => { if (house) { house.config = v; onHouse(); } },
+    presence: v => { if (house) { house.presence = v; onHouse(); } },
+    goals: v => { if (house) { house.goals = v; renderGoals(); } },
+    album: v => { if (house) { house.album = v; renderAlbum(); } },
+  }, weekId(), () => { toast("Lost access to your home."); house = null; refreshAll(); });
   pushPresence(true);
 }
 async function createHome() {
@@ -359,7 +459,7 @@ function roamBounds(sp) { const half = sp.rx + 3; const right = S.poops ? POOP_X
 function currentNeed() {
   if (!S.hints) return null;
   const list = [];
-  if (S.letterPending) list.push("letter");
+  if (S.letterPending || Object.keys(mail).length) list.push("letter");
   if (S.asleep && !S.lightsOff) list.push("light");
   if (S.calls.hunger) list.push("food");
   if (S.calls.happy) list.push("heart");
@@ -398,13 +498,14 @@ function drawParticles(now, dark) {
     else if (p.type === "spark") art(g, ART.sparkle, p.x - 2, p.y - 2);
     else if (p.type === "note") art(g, ART.note, p.x - 2, p.y - 2, { tint: p.col });
     else if (p.type === "flower") art(g, ART.flower, p.x - 2, p.y - 2);
+    else if (p.type === "coin") art(g, ART.coin, p.x - 2, p.y - 2);
     else if (p.type === "z") text(g, "Z", Math.round(p.x), Math.round(p.y), dark ? "#c9d0ff" : "#3b5bc9");
     else if (p.type === "confetti") R(g, p.x, p.y, 1, 1, p.col);
     else if (p.type === "crumb") R(g, p.x, p.y, 1, 1, "#ffffff");
     g.globalAlpha = 1;
   }
 }
-function myOpts(extra) { return Object.assign({ style: S.style, sick: S.sick, hat: !!special(), t: performance.now() }, extra); }
+function myOpts(extra) { return Object.assign({ style: S.style, sick: S.sick, hat: !!special(), elder: alive() && isElder(), t: performance.now() }, extra); }
 function drawMe(x, by, o) { return drawCreature(g, petSpec(), x, by, myOpts(o)); }
 function petPose(now) {
   const blink = (Math.floor(now / 150) % 28) === 0;
@@ -416,7 +517,7 @@ function petPose(now) {
   return { eyes, mouth, sq, look, hop: 0 };
 }
 function drawHome(now, opts = {}) {
-  drawRoom(g, now, S.decor);
+  drawRoom(g, now, roomDecor(), roomFx());
   drawPoops(S.poops, now, opts.poopClip);
   drawVisitors(now, opts);
   const p = Object.assign(petPose(now), interPose("me", now)), sp = petSpec();
@@ -435,14 +536,16 @@ function renderScreen(now) {
   else if (S.stage === "egg") renderEgg(now);
   else if (S.stage === "dead") renderDead(now);
   else if (mode === "game" && game) renderGame(now);
-  else { drawHome(now); if (S.lightsOff) { g.fillStyle = "rgba(14, 16, 46, .84)"; g.fillRect(0, 0, LW, LH); drawGlow(g, now, S.decor); dark = true; } }
+  else { drawHome(now); if (S.lightsOff) { g.fillStyle = "rgba(14, 16, 46, .84)"; g.fillRect(0, 0, LW, LH); drawGlow(g, now, roomDecor()); dark = true; } }
   drawParticles(now, dark);
   if (S.paused && !anim) { R(g, 0, 0, LW, 7, "rgba(43,35,64,.75)"); text(g, "PAUSED", 2, 1, "#ffffff"); }
   present();
 }
+function roomDecor() { const f = visitUid && friends().find(x => x.uid === visitUid); return f && f.p.decor ? Object.assign({}, DEFAULT_DECOR, f.p.decor) : S.decor; }
+function roomFx() { return { weather: S.useWeather && S.weather && Date.now() - S.weather.t < 3 * HOUR ? S.weather.kind : null, holiday: holidayAt(new Date()) }; }
 function cushion() { R(g, CX - 10, FLOOR - 3, 20, 4, "#ff9fbb"); R(g, CX - 12, FLOOR - 2, 24, 3, "#ff9fbb"); R(g, CX - 11, FLOOR, 22, 1, "#e07393"); }
 function renderEgg(now) {
-  drawRoom(g, now, S.decor); drawVisitors(now); cushion();
+  drawRoom(g, now, roomDecor(), roomFx()); drawVisitors(now); cushion();
   if (!S.family) { drawEgg(g, CX, FLOOR - 2, { tilt: Math.floor(now / 1800) % 4 === 0 ? Math.round(Math.sin(now / 120)) : 0 }); return; }
   const left = (S.eggStart + EGG_MS - Date.now()) / 1000;
   let tilt = 0;
@@ -463,24 +566,24 @@ function renderAnim(now) {
   const p = Math.min(1, (now - anim.t0) / anim.dur), d = anim.data, sp = petSpec();
   switch (anim.type) {
     case "eat": {
-      drawRoom(g, now, S.decor);
-      const food = d.food === "snack" ? ART.snack : ART.meal, bites = Math.min(3, Math.floor(p * 4));
+      drawRoom(g, now, roomDecor(), roomFx());
+      const food = ART[(FOODS[d.food] || FOODS.riceball).art] || ART.meal, bites = Math.min(3, Math.floor(p * 4));
       if (bites < 3) art(g, food, 22, FLOOR + 1 - food.length, { cut: Math.ceil(food.length * bites / 3) });
       const chomp = Math.floor(now / 250) % 2;
       drawMe(48, FLOOR, { eyes: chomp ? "happy" : "open", mouth: chomp ? "smile" : "open", look: -1, sq: chomp ? 0.94 : 1 });
       if (chomp && Math.random() < 0.3) spawn("crumb", 28, FLOOR - 6, 2, { up: 8, life: 500 });
       break;
     }
-    case "no": { drawRoom(g, now, S.decor); drawPoops(S.poops, now); const s = Math.floor(now / 160) % 2 ? 1 : -1; drawMe(CX + s, FLOOR, { eyes: "squeeze", mouth: "frown", look: s }); text(g, "NO", 4, 4, "#ef4a63", 2); break; }
+    case "no": { drawRoom(g, now, roomDecor(), roomFx()); drawPoops(S.poops, now); const s = Math.floor(now / 160) % 2 ? 1 : -1; drawMe(CX + s, FLOOR, { eyes: "squeeze", mouth: "frown", look: s }); text(g, "NO", 4, 4, "#ef4a63", 2); break; }
     case "happy": {
-      drawRoom(g, now, S.decor); drawPoops(S.poops, now); drawVisitors(now);
+      drawRoom(g, now, roomDecor(), roomFx()); drawPoops(S.poops, now); drawVisitors(now);
       const hop = Math.round(Math.abs(Math.sin(p * Math.PI * 3)) * 5);
       drawMe(petX, FLOOR - hop, { eyes: "happy", mouth: "open", sq: hop ? 1.05 : 0.92 });
       if (!d.spawned) { d.spawned = 1; spawn("heart", petX, 26, 4, { spread: 16, up: 18, life: 1300 }); }
       break;
     }
     case "dance": case "wedding": {
-      drawRoom(g, now, S.decor);
+      drawRoom(g, now, roomDecor(), roomFx());
       drawVisitors(now, { dance: true });
       const hop = Math.round(Math.abs(Math.sin(now / 160)) * 4), sway = Math.round(Math.sin(now / 320) * 3);
       drawMe(petX + sway, FLOOR - hop, { eyes: "happy", mouth: "open", sq: hop ? 1.05 : 0.9, look: sway > 0 ? 1 : -1 });
@@ -497,30 +600,30 @@ function renderAnim(now) {
       break;
     }
     case "med": {
-      drawRoom(g, now, S.decor);
+      drawRoom(g, now, roomDecor(), roomFx());
       const ouch = p > 0.55;
       const info = drawMe(50, FLOOR, { eyes: ouch ? "squeeze" : "open", mouth: ouch ? "o" : "frown", sick: !d.cured || p < 0.6, look: -1 });
       art(g, ART.syringe, Math.min(50 - info.rx - 12, -12 + p * 70), FLOOR - 14);
       if (p > 0.7 && d.cured && !d.spawned) { d.spawned = 1; spawn("spark", 50, 30, 5, { spread: 18, up: 10 }); }
       break;
     }
-    case "scold": { drawRoom(g, now, S.decor); drawMe(52 + Math.floor(now / 90) % 2, FLOOR, { eyes: "sad", mouth: "frown", sq: 0.95, look: -1 }); text(g, "!", 14, 10, "#ef4a63", 4); break; }
+    case "scold": { drawRoom(g, now, roomDecor(), roomFx()); drawMe(52 + Math.floor(now / 90) % 2, FLOOR, { eyes: "sad", mouth: "frown", sq: 0.95, look: -1 }); text(g, "!", 14, 10, "#ef4a63", 4); break; }
     case "sad": {
-      drawRoom(g, now, S.decor); drawPoops(S.poops, now);
+      drawRoom(g, now, roomDecor(), roomFx()); drawPoops(S.poops, now);
       const info = drawMe(CX, FLOOR, { eyes: "sad", mouth: "frown", sq: 0.95 });
       R(g, CX - sp.gap - 2, info.eyeY + 3 + (Math.round(p * 16) % 8), 1, 2, "#5aaee8");
       break;
     }
-    case "pat": { drawRoom(g, now, S.decor); drawPoops(S.poops, now); drawVisitors(now); drawMe(petX + Math.round(Math.sin(now / 60)), FLOOR, { eyes: "happy", mouth: "open", sq: 0.94 + Math.abs(Math.sin(now / 90)) * 0.08 }); break; }
+    case "pat": { drawRoom(g, now, roomDecor(), roomFx()); drawPoops(S.poops, now); drawVisitors(now); drawMe(petX + Math.round(Math.sin(now / 60)), FLOOR, { eyes: "happy", mouth: "open", sq: 0.94 + Math.abs(Math.sin(now / 90)) * 0.08 }); break; }
     case "hatch": {
-      drawRoom(g, now, S.decor); cushion();
+      drawRoom(g, now, roomDecor(), roomFx()); cushion();
       if (p < 0.55) drawEgg(g, CX, FLOOR - 2, { tilt: Math.round(Math.sin(now / 60) * 2), crack: p > 0.3, family: S.mystery ? null : S.family });
       else if (p < 0.64) R(g, 0, 0, LW, LH, "#ffffff");
       else { drawMe(CX, FLOOR - 2, { eyes: Math.floor(now / 400) % 3 ? "open" : "happy", mouth: "open" }); if (!d.spawned) { d.spawned = 1; spawn("spark", CX, 34, 8, { spread: 30, up: 10, life: 1500 }); } }
       break;
     }
     case "evolve": {
-      drawRoom(g, now, S.decor);
+      drawRoom(g, now, roomDecor(), roomFx());
       const flick = p < 0.7 ? (Math.floor(now / Math.max(60, 260 - p * 300)) % 2) : 1;
       const which = getSpec(flick ? d.to : d.from) || sp;
       if (p < 0.7) { drawCreature(g, which, CX, FLOOR, { sil: "#ffffff" }); g.fillStyle = "rgba(255,255,255,.35)"; g.fillRect(0, 0, LW, LH); }
@@ -548,46 +651,35 @@ function refuse(reason) { sfx("no"); buzz(20); play("no", 1400); if (reason) toa
 function fussRefuse() { return !!S.calls.misbehave && Math.random() < 0.5; }
 function done() { markDirty(true); refreshAll(); }
 const ACT = {
-  meal() {
-    const w = why(); if (w) return deny(w);
-    if (fussRefuse()) return refuse(`${pn()} is throwing a tantrum. Try scolding it.`);
-    if (S.hunger >= 4) return refuse(`${pn()} is full.`);
-    S.hunger++; S.weight = Math.min(99, S.weight + 1); closeCall("hunger"); S.poopT = Math.min(S.poopT, rand(8, 30));
-    play("eat", 2200, { food: "meal" }); sfx("eat"); buzz(10); done();
-  },
-  snack() {
-    const w = why(); if (w) return deny(w);
-    if (fussRefuse()) return refuse(`${pn()} is throwing a tantrum. Try scolding it.`);
-    if (S.sick) return refuse(`${pn()} feels too sick for treats.`);
-    S.happy = Math.min(4, S.happy + 1); S.weight = Math.min(99, S.weight + 2); closeCall("happy");
-    S.snackStreak++; S.snackT = 60;
-    if (S.snackStreak >= 5 && Math.random() < 0.35) getSick(Date.now());
-    else if (S.snackStreak >= 4) toast("That's a lot of snacks. Too many can make it sick.");
-    play("eat", 2200, { food: "snack" }); sfx("eat"); buzz(10); done();
-  },
+  meal() { const w = why(); if (w) return deny(w); mode = "food-meal"; sfx("click"); refreshAll(); },
+  snack() { const w = why(); if (w) return deny(w); mode = "food-snack"; sfx("click"); refreshAll(); },
   play() {
     const w = why(); if (w) return deny(w);
     if (S.sick) return refuse(`${pn()} feels too sick to play.`);
     if (fussRefuse()) return refuse(`${pn()} is throwing a tantrum. Try scolding it.`);
     mode = "pick"; sfx("click"); refreshAll();
   },
-  clean() { const w = why(); if (w) return deny(w); play("flush", 1800, {}); sfx("ok"); buzz(10); if (S.poops) log(Date.now(), "Got cleaned up"); S.poops = 0; done(); },
+  clean() {
+    const w = why(); if (w) return deny(w); play("flush", 1800, {}); sfx("ok"); buzz(10);
+    if (S.poops) { log(Date.now(), "Got cleaned up"); earn(S.poops); S.stats.cleans = (S.stats.cleans || 0) + S.poops; for (let i = 0; i < S.poops; i++) bumpGoal("cleans"); }
+    S.poops = 0; done();
+  },
   medicine() {
     const w = why(); if (w) return deny(w);
     if (!S.sick) return refuse(`${pn()} isn't sick.`);
-    S.doses--; const cured = S.doses <= 0;
+    S.doses = S.trait === "brave" ? 0 : S.doses - 1; const cured = S.doses <= 0; if (cured) earn(3);
     if (cured) { S.sick = false; S.sickMin = 0; S.doses = 0; log(Date.now(), "Feeling better after medicine"); } else toast("One more dose needed.");
     play("med", 2000, { cured }); sfx("ok"); buzz(10); done();
   },
   light() {
     const w = why(false); if (w) return deny(w);
     S.lightsOff = !S.lightsOff;
-    if (S.asleep) { if (S.lightsOff) { closeCall("lights"); toast(`Good night, ${pn()}.`); } else openCall("lights", Date.now()); }
+    if (S.asleep) { if (S.lightsOff) { closeCall("lights"); toast(`Good night, ${pn()}.`); if (S.gifts.lightNight !== dayKey(Date.now() - 10 * HOUR)) { S.gifts.lightNight = dayKey(Date.now() - 10 * HOUR); earn(2); } } else openCall("lights", Date.now()); }
     sfx("click"); done();
   },
   scold() {
     const w = why(); if (w) return deny(w);
-    if (S.calls.misbehave) { S.discipline = Math.min(100, S.discipline + 25); closeCall("misbehave"); play("scold", 1800); sfx("ok"); buzz(25); toast(S.discipline >= 100 ? "Perfect manners!" : "Good. Its manners are improving."); }
+    if (S.calls.misbehave) { S.discipline = Math.min(100, S.discipline + 25); closeCall("misbehave"); earn(2); if (S.discipline >= 100) S.stats.manners = 1; play("scold", 1800); sfx("ok"); buzz(25); toast(S.discipline >= 100 ? "Perfect manners!" : "Good. Its manners are improving."); }
     else { S.happy = Math.max(0, S.happy - 1); if (S.happy === 0) openCall("happy", Date.now()); play("sad", 1800); sfx("no"); buzz(25); toast(`${pn()} didn't do anything wrong. It's sad now.`); }
     done();
   },
@@ -595,6 +687,9 @@ const ACT = {
     const w = why(); if (w) return deny(w);
     if (S.calls.misbehave) { toast(`${pn()} is sulking and won't cuddle.`); return; }
     play("pat", 1200); sfx("giggle"); buzz(12); spawn("heart", petX, 26, 3, { spread: 14, up: 16, life: 1200 });
+    S.stats.cuddles = (S.stats.cuddles || 0) + 1; if (Date.now() - (S.gifts.cuddleGoal || 0) > 5 * MIN) { S.gifts.cuddleGoal = Date.now(); bumpGoal("cuddles"); }
+    if (S.trait === "cuddly" && S.happy < 4 && canGetGift("cuddle", 1)) { S.happy++; closeCall("happy"); toast(`${pn()} loves cuddles!`); }
+    markDirty(false);
   },
 };
 
@@ -603,9 +698,10 @@ const env = {
   g, now: () => performance.now(), snow,
   pet: (x, by, o = {}) => { const info = drawMe(x, by, o); if (o.tag) nameTag(S.name || "YOU", x, info.headY - 9); return info; },
   mini: (x, by, o = {}) => drawCreature(g, miniSpec(), x, by, myOpts(o)),
-  partner: () => { const f = coPartner(); if (!f) return null; return { x: typeof f.p.co.x === "number" ? f.p.co.x : CX, caught: Array.isArray(f.p.co.caught) ? f.p.co.caught : [], pet: f.p.pet, name: f.p.name }; },
+  partner: () => { const f = coPartner(); if (!f) return null; const c = f.p.co; return { x: typeof c.x === "number" ? c.x : CX, caught: Array.isArray(c.caught) ? c.caught : [], taps: typeof c.taps === "number" ? c.taps : 0, pet: f.p.pet, name: f.p.name }; },
+  partnerMini: (x, by, o = {}) => { const f = coPartner(); const pp = f && f.p.pet; const sp = pp && getSpec(formId(pp.family || "kitten", "baby", "n")); if (sp) drawCreature(g, sp, x, by, Object.assign({ style: pp.style }, o)); },
   partnerPet: (x, by, o = {}) => { const f = coPartner(); const pp = f && f.p.pet; const sp = pp && getSpec(pp.form); if (!sp) return; const info = drawCreature(g, sp, x, by, Object.assign({ style: pp.style }, o)); if (o.tag) nameTag(pp.name || f.p.name, x, info.headY - 9); },
-  room: () => { drawRoom(g, performance.now(), S.decor); g.fillStyle = "rgba(255,244,247,.72)"; g.fillRect(0, 0, LW, 40); },
+  room: () => { drawRoom(g, performance.now(), S.decor, roomFx()); g.fillStyle = "rgba(255,244,247,.72)"; g.fillRect(0, 0, LW, 40); },
   sfx, buzz, spawn, hold: () => hold,
   tone: (f, d) => { if (S.sound && actx && actx.state === "running") try { tone(f, 0, d); } catch (e) {} },
   petHeight: () => { const sp = petSpec(); return Math.round(sp.ry * 2 + (sp.feet || 0)); },
@@ -629,13 +725,16 @@ function finishGame(over) {
   if (over.won) { S.happy = Math.min(4, S.happy + 1); closeCall("happy"); }
   const prev = S.best[game.id] || 0;
   if (over.score > prev) S.best[game.id] = over.score;
-  if (game.st.coop) { const f = coPartner(); if (f) addBond(f.uid, "Played a game together"); }
+  if (game.st.coop) { const f = coPartner(); if (f) addBond(f.uid, "Played a game together"); bumpGoal("together"); }
+  if (over.won) { S.stats.wins = (S.stats.wins || 0) + 1; bumpGoal("wins"); if (S.trait === "playful" && S.happy < 4) S.happy++; }
+  const base = game.st.coop ? (over.won ? 12 : 5) : (over.won ? 8 : 2);
+  earn(Math.round(base * (S.trait === "playful" ? 1.5 : 1)));
   log(Date.now(), `${over.won ? "Won" : "Played"} ${game.def.name}`);
   markDirty(true);
 }
 function tickGame(now, dt) {
   const st = game.st;
-  if (!st.over) { game.def.tick(st, env, dt, { hold }); if (st.coop) { coState = { id: st.id, seed: st.seed, start: st.start, x: Math.round(st.x), caught: st.mine.slice(0, 120) }; } }
+  if (!st.over) { game.def.tick(st, env, dt, { hold }); if (st.coop) { coState = Object.assign({ id: st.id, seed: st.seed, start: st.start, game: game.id }, game.def.coSync ? game.def.coSync(st) : {}); } }
   if (st.over && !game.overAt) { game.overAt = now; finishGame(st.over); sfx(st.over.won ? "tune" : "lose"); }
   if (game.overAt && now - game.overAt > 2800) endGame();
 }
@@ -673,7 +772,7 @@ function buildPad() {
 }
 function buildGamePicker() {
   const host = $("games"); host.textContent = "";
-  GAMES.forEach(def => {
+  GAMES.filter(d => !d.twoPlayer).forEach(def => {
     const b = document.createElement("button"); b.type = "button"; b.className = "game-card";
     b.appendChild(iconCanvas(def.icon));
     const t = document.createElement("div");
@@ -692,8 +791,8 @@ let coState = null, myAct = null, lastPresence = "", lastPresenceT = 0, actCoold
 const handledActs = new Set(), seenFriends = new Set(), arrivedAt = {};
 let pendingProposal = null, pendingFamily = null;
 function presenceObj() {
-  const pet = S.stage === "dead" ? null : { name: (S.name || "").slice(0, 14), form: S.form, stage: S.stage, family: S.family, style: S.style, asleep: S.asleep, married: S.partner ? S.partner.uid : null };
-  return { v: 1, name: me ? me.name : "Friend", pet, x: Math.round(petX), act: myAct, co: coState, t: snow() };
+  const pet = S.stage === "dead" ? null : { name: (S.name || "").slice(0, 14), form: S.form, stage: S.stage, family: S.family, style: S.style, asleep: S.asleep, married: S.partner ? S.partner.uid : null, trait: S.trait };
+  return { v: 1, name: me ? me.name : "Friend", pet, x: Math.round(petX), act: myAct, co: coState, decor: S.decor, t: snow() };
 }
 function pushPresence(force) {
   if (!pres) return;
@@ -716,7 +815,7 @@ const fName = f => (f && f.p && f.p.name) || "Your friend";
 function coPartner() { if (!game || !game.st.coop) return null; return friends().find(f => f.p.co && f.p.co.id === game.st.id) || null; }
 function pendingCoop() {
   if (game) return null;
-  for (const f of friends()) { const c = f.p.co; if (c && typeof c.id === "string" && typeof c.seed === "number" && typeof c.start === "number" && c.start + 22000 > snow()) return { f, co: c }; }
+  for (const f of friends()) { const c = f.p.co; if (c && typeof c.id === "string" && typeof c.seed === "number" && typeof c.start === "number" && c.start + 20000 > snow() && GAME_BY_ID[c.game || "catch"]) return { f, co: c }; }
   return null;
 }
 function handlePresence() {
@@ -742,7 +841,7 @@ function addBond(uid, why) {
   S.bondT[uid] = Date.now();
   const before = S.bond[uid] || 0;
   S.bond[uid] = Math.min(BOND_MAX, before + 1);
-  if (S.bond[uid] > before) { log(Date.now(), `${why} (friendship ${S.bond[uid]}/${BOND_MAX})`); if (S.bond[uid] === BOND_MAX) toast("Best friends! Their friendship hearts are full."); }
+  if (S.bond[uid] > before) { log(Date.now(), `${why} (friendship ${S.bond[uid]}/${BOND_MAX})`); if (S.bond[uid] === BOND_MAX) { S.stats.bff = 1; toast("Best friends! Their friendship hearts are full."); } }
   markDirty(true);
 }
 function sendAct(type, extra) {
@@ -761,7 +860,7 @@ function applyAct(f, a) {
   } else if (a.type === "snack") {
     if (alive() && !S.asleep && !anim && mode === "main") {
       let extra = ""; if (canGetGift("snack", 1) && S.hunger < 4) { S.hunger++; closeCall("hunger"); extra = ` ${pn()} ate it up.`; log(Date.now(), `${who} shared a snack`); }
-      play("eat", 2200, { food: "snack" }); sfx("eat"); toast(`${who} shared a snack from ${theirPet}!${extra}`);
+      play("eat", 2200, { food: a.food && FOODS[a.food] ? a.food : "cupcake" }); sfx("eat"); toast(`${who} shared a snack from ${theirPet}!${extra}`);
     } else toast(`${who} shared a snack, but ${pn()} can't eat right now.`);
     addBond(f.uid, `${who} shared a snack`);
   } else if (a.type === "dance") {
@@ -790,7 +889,7 @@ function marry(f) {
   standApart(f.uid);
   const pp = f.p.pet || {};
   S.partner = { uid: f.uid, owner: fName(f), petName: pp.name || "their pet", form: pp.form, style: pp.style, family: pp.family, since: Date.now() };
-  log(Date.now(), `Married ${S.partner.petName}!`);
+  log(Date.now(), `Married ${S.partner.petName}!`); S.stats.married = (S.stats.married || 0) + 1; earn(30);
   pendingProposal = null;
   if (!anim) play("wedding", 7000);
   sfx("wedding"); buzz(40);
@@ -807,7 +906,8 @@ function haveBaby(f, seed) {
   const family = r() < 0.5 ? A.family : B.family;
   let coat = r() < 0.5 ? A.coat : B.coat;
   if (!COATS[coat]) coat = "natural";
-  const heir = { id: String(seed), family: FAMILIES[family] ? family : S.family, coat, parents: [A.name, B.name], t: Date.now() };
+  const heir = { id: String(seed), family: FAMILIES[family] ? family : S.family, coat, parents: [A.name, B.name], traits: [S.trait, pp.trait].filter(t => TRAITS[t]), t: Date.now() };
+  S.stats.babies = (S.stats.babies || 0) + 1;
   if (!S.heirs.some(h => h.id === heir.id)) S.heirs.push(heir);
   if (S.heirs.length > 3) S.heirs.shift();
   S.lastBaby = Date.now(); pendingFamily = null;
@@ -883,6 +983,7 @@ function endInter(f, now) {
   const names = `${pn()} and ${(f.p.pet && f.p.pet.name) || "their pet"}`;
   const what = { hug: "shared a hug", chase: "played tag", hop: "bounced together", gift: "swapped flowers", highfive: "high-fived" }[inter.type];
   if (canGetGift("playdate", 1)) { S.happy = Math.min(4, S.happy + 1); closeCall("happy"); }
+  earn(2); S.stats.playdates = (S.stats.playdates || 0) + 1; bumpGoal("playdates");
   addBond(f.uid, `${names} ${what}`);
   inter = null; nextInter = now + 9000 + Math.random() * 9000;
   renderTogether();
@@ -954,7 +1055,10 @@ function renderTogether() {
   $("together-btns").hidden = state !== "home" || !fr.length;
   const f0 = fr[0];
   const busy = mode === "game" || !!anim;
-  ["t-hearts", "t-snack", "t-dance", "t-catch"].forEach(id => { $(id).disabled = busy; });
+  ["t-hearts", "t-snack", "t-dance", "t-catch", "t-race", "t-tug", "t-visit"].forEach(id => { $(id).disabled = busy; });
+  if (visitUid && !fr.some(f => f.uid === visitUid)) visitUid = null;
+  $("t-visit").textContent = visitUid ? "Go back home" : f0 ? `Visit ${fName(f0)}'s room` : "Visit their room";
+  $("pill-visit").hidden = !visitUid; if (visitUid) $("pill-visit").textContent = `At ${fName(fr.find(f => f.uid === visitUid))}'s`;
   const fp = f0 && f0.p.pet;
   const canPropose = f0 && alive() && S.stage === "adult" && fp && fp.stage === "adult" && !S.partner && !fp.married && (S.bond[f0.uid] || 0) >= BOND_MAX;
   $("t-marry").hidden = !canPropose; $("t-marry").disabled = busy;
@@ -977,7 +1081,7 @@ function renderTogether() {
   let inv = null;
   if (pendingProposal && friends().some(f => f.uid === pendingProposal.f.uid)) inv = { key: "p" + pendingProposal.id, text: `${(pendingProposal.f.p.pet && pendingProposal.f.p.pet.name) || "Their pet"} wants to marry ${pn()}! Say yes?`, yes: acceptProposal, no: declineProposal };
   else if (pendingFamily && friends().some(f => f.uid === pendingFamily.f.uid)) inv = { key: "f" + pendingFamily.id, text: `${fName(pendingFamily.f)} wants your pets to start a family. Have an egg together?`, yes: acceptFamily, no: () => { const pf = pendingFamily; pendingFamily = null; if (pf) sendAct("decline", { to: pf.f.uid }); refreshAll(); } };
-  else if (coop) inv = { key: "c" + coop.co.id, text: `${fName(coop.f)} wants to catch stars together!`, yes: joinCoop, no: () => { declinedCoop = coop.co.id; refreshAll(); } };
+  else if (coop) inv = { key: "c" + coop.co.id, text: `${fName(coop.f)} wants to play ${GAME_BY_ID[coop.co.game || "catch"].name}!`, yes: joinCoop, no: () => { declinedCoop = coop.co.id; refreshAll(); } };
   if (inv && inv.key === "c" + declinedCoop) inv = null;
   $("invite").hidden = !inv;
   if (inv) { $("invite-text").textContent = inv.text; invYes = inv.yes; invNo = inv.no; if (inv.key !== lastInviteKey) { lastInviteKey = inv.key; sfx("alert"); buzz(30); toast(inv.text); } }
@@ -998,24 +1102,25 @@ function acceptFamily() {
 }
 function joinCoop() {
   const inv = pendingCoop(); if (!inv) return;
-  startGame("catch", { co: { id: inv.co.id, seed: inv.co.seed, start: inv.co.start, host: false } });
+  startGame(inv.co.game || "catch", { co: { id: inv.co.id, seed: inv.co.seed, start: inv.co.start, host: false } });
 }
 function quickTogether(type) {
   audioOn();
   const fr = friends(); if (!fr.length) return toast("Nobody else is here right now.");
   if (Date.now() < actCooldown) return; actCooldown = Date.now() + 2500;
   const f = fr[0], who = fName(f);
-  if (type === "catch") {
+  if (type === "catch" || type === "race" || type === "tug") {
     const w = why(); if (w) return deny(w);
-    const co = { id: Math.random().toString(36).slice(2, 10), seed: rand(1, 1e9), start: snow() + 6000, host: true };
-    startGame("catch", { co }); coState = { id: co.id, seed: co.seed, start: co.start, x: 26, caught: [] }; pushPresence(true);
-    return toast(`Invited ${who}. Starting in a few seconds.`);
+    const co = { id: Math.random().toString(36).slice(2, 10), seed: rand(1, 1e9), start: snow() + 6000, host: true, game: type };
+    startGame(type, { co }); coState = { id: co.id, seed: co.seed, start: co.start, game: type }; pushPresence(true);
+    return toast(`Invited ${who} to ${GAME_BY_ID[type].name}. Starting in a few seconds.`);
   }
+  if (type === "visit") { visitUid = visitUid ? null : f.uid; sfx("ok"); toast(visitUid ? `${pn()} is visiting ${who}'s room.` : `${pn()} is back home.`); return refreshAll(); }
   if (type === "propose") { sendAct("propose", { to: f.uid }); return toast(`${pn()} proposed! Waiting for ${who}…`); }
   if (type === "family") { sendAct("family", { to: f.uid, seed: rand(1, 1e9) }); return toast(`Asked ${who} to start a family…`); }
   sendAct(type, { to: f.uid });
   if (type === "hearts") { spawn("heart", petX, 26, 6, { spread: 20, up: 18 }); sfx("giggle"); toast(`Hearts sent to ${who}.`); }
-  else if (type === "snack") { sfx("ok"); toast(`Sent a snack to ${who}'s pet.`); }
+  else if (type === "snack") { sfx("ok"); toast(`Sent a snack to ${who}'s pet.`); bumpGoal("snacks"); }
   else if (type === "dance") { if (alive() && !S.asleep && !S.lightsOff && !anim && mode === "main") { standApart(f.uid); play("dance", 6000); sfx("dance"); if (canGetGift("dance", 2)) { S.happy = Math.min(4, S.happy + 1); closeCall("happy"); } } toast(`Dance party with ${who}!`); }
   addBond(f.uid, { hearts: `Sent hearts to ${who}`, snack: `Shared a snack with ${who}`, dance: `Danced with ${who}` }[type]);
   refreshAll();
@@ -1024,6 +1129,9 @@ $("t-hearts").addEventListener("click", () => quickTogether("hearts"));
 $("t-snack").addEventListener("click", () => quickTogether("snack"));
 $("t-dance").addEventListener("click", () => quickTogether("dance"));
 $("t-catch").addEventListener("click", () => quickTogether("catch"));
+$("t-race").addEventListener("click", () => quickTogether("race"));
+$("t-tug").addEventListener("click", () => quickTogether("tug"));
+$("t-visit").addEventListener("click", () => quickTogether("visit"));
 $("t-marry").addEventListener("click", () => quickTogether("propose"));
 $("t-baby").addEventListener("click", () => quickTogether("family"));
 $("invite-copy").addEventListener("click", () => {
@@ -1049,7 +1157,7 @@ function loop(now) {
       petTarget = Math.max(lo, Math.min(hi, petTarget));
       if (Math.abs(petTarget - petX) < 0.5 && now > petIdleUntil) { petTarget = lo + Math.random() * (hi - lo); petIdleUntil = now + 1500 + Math.random() * 3500; }
     } else petTarget = Math.max(lo, Math.min(hi, petTarget));
-    if (Math.abs(petTarget - petX) >= 0.5) { const dir = Math.sign(petTarget - petX); petX += dir * Math.min(Math.abs(petTarget - petX), (inter ? 13 : 9) * dt); petFacing = dir; } else petFacing = 0;
+    if (Math.abs(petTarget - petX) >= 0.5) { const dir = Math.sign(petTarget - petX); petX += dir * Math.min(Math.abs(petTarget - petX), (inter ? 13 : isElder() ? 5 : 9) * dt); petFacing = dir; } else petFacing = 0;
     petX = Math.max(lo, Math.min(hi, petX));
   }
   updateVisitors(now, dt);
@@ -1070,6 +1178,7 @@ function simTick() {
   if (before !== snapKey()) refreshAll(); else renderPanel();
   renderTogether();
   renderDecor(false);
+  checkAch(); checkDaily(); refreshWeather(false);
 }
 
 /* ===================== DOM: quick actions, panel ===================== */
@@ -1129,7 +1238,10 @@ function updateControls() {
   const picking = S.stage === "egg" && !S.family || (S.stage === "dead");
   $("egg-pick").hidden = !(S.stage === "egg" && !S.family);
   $("actions").hidden = mode !== "main" || (S.stage === "egg" && !S.family);
+  $("pill-coins").textContent = String(S.coins || 0);
   $("game-pick").hidden = mode !== "pick";
+  $("food-pick").hidden = !mode.startsWith("food");
+  if (mode.startsWith("food")) renderFoods();
   $("game-pad").hidden = mode !== "game";
   $("keys").hidden = mode !== "main" || picking;
   if (mode === "game" && game && game.def.tapHint) { $("keys").hidden = false; $("keys").textContent = game.def.tapHint; }
@@ -1177,6 +1289,9 @@ function factsList(now) {
   const w = sleepWindow();
   f.push(["Bedtime", w ? `${fmtHour(w[0])} to ${fmtHour(w[1])}` : "Naps anytime"]);
   f.push(["Weight", `${S.weight} oz`]);
+  if (S.trait && TRAITS[S.trait]) f.push(["Personality", TRAITS[S.trait].name]);
+  if (S.fav && S.tried[S.fav]) f.push(["Favourite food", FOODS[S.fav].name]);
+  if (isElder()) f.push(["Age", "Getting old"]);
   f.push(["Care mistakes", S.stage === "adult" ? `${S.totalMistakes} total` : `${S.mistakes} this stage`]);
   return f;
 }
@@ -1195,7 +1310,7 @@ function renderPanel(force) {
   const needs = (S.hints || !alive()) ? needsList() : [];
   const facts = factsList(now);
   const sp2 = special();
-  const key = JSON.stringify([name, meta, needs, facts, !!me, S.stage, S.name, S.paused, S.sound, S.quiet, S.hints, S.visitors, S.history.length, S.hunger, S.happy, S.discipline,
+  const key = JSON.stringify([name, meta, needs, facts, !!me, S.coins, Object.keys(mail).length, S.stage, S.name, S.paused, S.sound, S.quiet, S.hints, S.visitors, S.history.length, S.hunger, S.happy, S.discipline,
     S.letterPending, S.letters.length, S.log.length, CFG.herName, sp2 && sp2.text, renaming, S.partner && S.partner.uid, S.heirs.length, mode]);
   if (!force && key === lastPanelKey) return;
   lastPanelKey = key;
@@ -1222,6 +1337,8 @@ function renderPanel(force) {
   $("name-input").placeholder = CFG.petName || (S.parents ? `${S.parents[0]} Jr.` : "Mochi");
   $("sync").textContent = !net ? "Saved in this browser." : me ? "Saved to your account, so it follows you to any device where you sign in." : "Saved in this browser only. Sign in with Google to keep it safe and use it on any device.";
   $("opt-sound").checked = !!S.sound; $("opt-quiet").checked = !!S.quiet; $("opt-pause").checked = !!S.paused; $("opt-hints").checked = !!S.hints; $("opt-visitors").checked = !!S.visitors;
+  $("opt-music").checked = !!S.music; $("opt-weather").checked = !!S.useWeather;
+  renderAchievements(false); renderGoals(); renderMail(); renderAlbum(); renderPushRow();
   $("reset-text").textContent = alive() ? `${S.name || "Your pet"} will be gone for good. This can't be undone.` : "This replaces the current egg.";
   $("letters-card").hidden = !S.letters.length;
   $("letters-count").textContent = S.letters.length ? String(S.letters.length) : "";
@@ -1229,7 +1346,7 @@ function renderPanel(force) {
   S.letters.slice().reverse().forEach(L => {
     const li = document.createElement("li"); const b = document.createElement("button"); b.type = "button";
     const t = document.createElement("span"); t.className = "l-text"; t.textContent = L.text.split("\n")[0];
-    const d = document.createElement("span"); d.className = "l-date"; d.textContent = (L.kind === "welcome" ? "Welcome note · " : "") + new Date(L.t).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+    const d = document.createElement("span"); d.className = "l-date"; d.textContent = (L.kind === "welcome" ? "Welcome note · " : L.kind === "mail" ? `From ${L.from} · ` : "") + new Date(L.t).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
     b.append(t, d); b.addEventListener("click", () => openLetter(L)); li.appendChild(b); ll.appendChild(li);
   });
   const di = $("diary"); di.textContent = "";
@@ -1242,9 +1359,13 @@ function renderPanel(force) {
   S.history.slice().reverse().forEach(h => {
     const li = document.createElement("li");
     const hs = getSpec(OLD_FORMS[h.form] || h.form);
-    const a = document.createElement("span"); a.style.fontWeight = "800"; a.textContent = `${h.name}, ${hs ? hs.label : "a pet"}`;
+    const c = document.createElement("canvas"); c.width = 40; c.height = 34; c.setAttribute("aria-hidden", "true");
+    const x = c.getContext("2d"); R(x, 0, 28, 40, 6, "#a8dc84"); R(x, 26, 14, 10, 15, "#b5aec8"); R(x, 27, 13, 8, 1, "#b5aec8"); R(x, 28, 18, 6, 1, "#8d86a3"); R(x, 30, 16, 2, 5, "#8d86a3"); art(x, ART.flower, 21, 25);
+    if (hs) drawCreature(x, hs, 14, 30, { eyes: "sleep", alpha: 0.75, style: { coat: "natural" } });
+    const t = document.createElement("div");
+    const a = document.createElement("b"); a.textContent = `${h.name}, ${hs ? hs.label : "a pet"}`;
     const b = document.createElement("span"); b.className = "m-meta"; b.textContent = `Gen ${h.gen} · ${h.days} days · ${h.cause}${h.partner ? " · married to " + h.partner : ""}`;
-    li.append(a, b); mem.appendChild(li);
+    t.append(a, b); li.append(c, t); mem.appendChild(li);
   });
 }
 function renderAccount() {
@@ -1294,7 +1415,7 @@ function chooseEgg(f) {
   sfx("tune"); markDirty(true); refreshAll(); pushPresence(true);
 }
 function chooseHeir(h) {
-  S.family = h.family; S.parents = h.parents; S.style.coat = h.coat || S.style.coat; S.mystery = false;
+  S.family = h.family; S.parents = h.parents; S.style.coat = h.coat || S.style.coat; S.mystery = false; S.parentTraits = h.traits && h.traits.length ? h.traits : null;
   S.heirs = S.heirs.filter(x => x.id !== h.id);
   S.eggStart = Date.now(); S.lastSim = Date.now();
   log(Date.now(), `Started raising the child of ${h.parents.join(" & ")}`);
@@ -1367,8 +1488,8 @@ function buildDecor() {
       const b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.setAttribute("aria-pressed", "false");
       const c = document.createElement("canvas"); c.width = kind === "pet" ? 50 : LW; c.height = kind === "pet" ? 35 : LH; c.setAttribute("aria-hidden", "true");
       const s = document.createElement("span"); s.textContent = name; b.append(c, s);
-      b.addEventListener("click", () => { audioOn(); buzz(6); sfx("click"); if (kind === "room") S.decor[key] = val; else S.style[key] = val; markDirty(true); renderDecor(true); pushPresence(true); });
-      row.appendChild(b); decoButtons[kind][key][val] = { b, c };
+      b.addEventListener("click", () => { audioOn(); buzz(6); pickDecor(kind, key, val, b); });
+      row.appendChild(b); decoButtons[kind][key][val] = { b, c, s, name };
     }
     grp.append(h, row); host.appendChild(grp);
   });
@@ -1379,7 +1500,8 @@ function buildDecor() {
   $("deco-random").addEventListener("click", () => {
     audioOn(); sfx("tune");
     const pick = o => { const k = Object.keys(o); return k[rand(0, k.length - 1)]; };
-    if (decoTab === "room") for (const [key, , opts] of ROOM_GROUPS) S.decor[key] = pick(opts); else for (const [key, , opts] of PET_GROUPS) S.style[key] = pick(opts);
+    const pickOwned = (kind, key, opts) => { const ok = Object.keys(opts).filter(v => isOwned(kind, key, v)); return ok[rand(0, ok.length - 1)]; };
+    if (decoTab === "room") for (const [key, , opts] of ROOM_GROUPS) S.decor[key] = pickOwned("room", key, opts); else for (const [key, , opts] of PET_GROUPS) S.style[key] = pickOwned("pet", key, opts);
     markDirty(true); renderDecor(true); pushPresence(true);
   });
   $("deco-reset").addEventListener("click", () => { if (decoTab === "room") S.decor = Object.assign({}, DEFAULT_DECOR); else S.style = Object.assign({}, DEFAULT_STYLE); sfx("click"); markDirty(true); renderDecor(true); pushPresence(true); });
@@ -1390,11 +1512,11 @@ function renderDecor(force) {
   if (!force && k === decoKey) return; decoKey = k;
   const now = performance.now();
   if (decoTab === "room") {
-    for (const [key] of ROOM_GROUPS) for (const [val, { b, c }] of Object.entries(decoButtons.room[key])) { b.setAttribute("aria-pressed", String(S.decor[key] === val)); const x = c.getContext("2d"); x.clearRect(0, 0, LW, LH); drawRoom(x, now, Object.assign({}, S.decor, { [key]: val })); }
+    for (const [key] of ROOM_GROUPS) for (const [val, { b, c, s, name }] of Object.entries(decoButtons.room[key])) { b.setAttribute("aria-pressed", String(S.decor[key] === val)); priceLabel("room", key, val, b, s, name); const x = c.getContext("2d"); x.clearRect(0, 0, LW, LH); drawRoom(x, now, Object.assign({}, S.decor, { [key]: val })); }
   } else {
     const sp = alive() ? petSpec() : getSpec(formId(S.family || "kitten", "child", "n"));
-    for (const [key] of PET_GROUPS) for (const [val, { b, c }] of Object.entries(decoButtons.pet[key])) {
-      b.setAttribute("aria-pressed", String(S.style[key] === val));
+    for (const [key] of PET_GROUPS) for (const [val, { b, c, s, name }] of Object.entries(decoButtons.pet[key])) {
+      b.setAttribute("aria-pressed", String(S.style[key] === val)); priceLabel("pet", key, val, b, s, name);
       const x = c.getContext("2d"); x.clearRect(0, 0, 50, 35); R(x, 0, 0, 50, 35, "#fff4f7"); R(x, 0, 30, 50, 5, "#f6dcc0");
       drawCreature(x, sp, 25, 32, { style: Object.assign({}, S.style, { [key]: val }), eyes: "open" });
     }
@@ -1417,9 +1539,9 @@ function computeAway(prevSeen) {
   $("away").hidden = false;
 }
 function openLetter(L, isNew) {
-  $("p-head").textContent = L.kind === "welcome" ? "A note came with your egg" : isNew ? `${pn()} brought you a letter` : "A letter";
+  $("p-head").textContent = L.kind === "welcome" ? "A note came with your egg" : L.kind === "mail" ? `A letter from ${L.from}` : isNew ? `${pn()} brought you a letter` : "A letter";
   $("p-body").textContent = L.text;
-  const from = (L.from || CFG.from || "").trim();
+  const from = L.kind === "mail" ? "" : (L.from || CFG.from || "").trim();
   $("p-sign").textContent = from; $("p-sign").hidden = !from;
   $("modal").hidden = false; setTimeout(() => $("p-close").focus(), 30);
 }
@@ -1547,6 +1669,7 @@ cv.addEventListener("pointerdown", e => {
   if (anim) return;
   if (S.stage === "dead") { toast("Tap the button below to start the next generation."); return; }
   if (S.stage === "egg") { sfx("pop"); spawn("spark", x, y, 2, { up: 6, life: 600 }); return; }
+  if (Object.keys(mail).length) { openMail(); return; }
   if (S.letterPending) { openPendingLetter(); return; }
   const sp = petSpec();
   if (Math.abs(x - petX) <= sp.rx + 4 && y > FLOOR - sp.ry * 2 - 10) ACT.pat();
@@ -1582,10 +1705,350 @@ document.addEventListener("keyup", e => { if (["arrowleft", "arrowright"].includ
 document.addEventListener("pointerdown", audioOn, { once: true });
 document.addEventListener("visibilitychange", () => {
   if (!S) return;
-  if (document.visibilityState === "hidden") { S.lastSeen = Date.now(); saveLocal(); pushRemote(); }
-  else { const prev = S.lastSeen; simulateTo(Date.now()); computeAway(prev); S.lastSeen = Date.now(); markDirty(false); refreshAll(); pushPresence(true); }
+  if (document.visibilityState === "hidden") { S.lastSeen = Date.now(); saveLocal(); pushRemote(); scheduleAlerts(true); stopMusic(); }
+  else { const prev = S.lastSeen; simulateTo(Date.now()); computeAway(prev); S.lastSeen = Date.now(); checkDaily(); markDirty(false); refreshAll(); pushPresence(true); startMusic(); }
 });
 window.addEventListener("resize", fitCanvas);
+
+
+/* ===================== coins, shop and food ===================== */
+function earn(n) {
+  if (!n || !S) return;
+  S.coins = (S.coins || 0) + n;
+  S.stats.coinsEarned = (S.stats.coinsEarned || 0) + n;
+  if (LIVE && typeof performance !== "undefined") spawn("coin", petX + rand(-6, 6), 22, 1, { up: 12, life: 900 });
+}
+function spend(n) { if ((S.coins || 0) < n) return false; S.coins -= n; return true; }
+function priceKey(kind, key, val) { return kind === "room" && (key === "left" || key === "right") ? `item.${val}` : kind === "room" ? `${key}.${val}` : `${key}.${val}`; }
+function isOwned(kind, key, val) { const k = priceKey(kind, key, val); return !PRICES[k] || !!S.owned[k]; }
+function priceLabel(kind, key, val, b, s, name) {
+  const k = priceKey(kind, key, val), price = PRICES[k], locked = price && !S.owned[k];
+  b.classList.toggle("locked", !!locked);
+  if (b.dataset.confirm) return;
+  s.textContent = locked ? `${name} · ${price}c` : name;
+}
+function pickDecor(kind, key, val, b) {
+  const k = priceKey(kind, key, val), price = PRICES[k];
+  if (price && !S.owned[k]) {
+    if ((S.coins || 0) < price) { sfx("no"); return toast(`That costs ${price} coins. You have ${S.coins || 0}. Play games and look after your pet to earn more.`); }
+    if (!b.dataset.confirm) {
+      b.dataset.confirm = "1"; const s = b.querySelector("span"); s.textContent = `Buy for ${price}?`; sfx("click");
+      setTimeout(() => { delete b.dataset.confirm; renderDecor(true); }, 3500);
+      return;
+    }
+    delete b.dataset.confirm;
+    spend(price); S.owned[k] = Date.now(); S.stats.bought = (S.stats.bought || 0) + 1; sfx("tune"); toast("Bought! It's yours to keep.");
+    log(Date.now(), `Bought something new for ${price} coins`);
+  } else sfx("click");
+  if (kind === "room") S.decor[key] = val; else S.style[key] = val;
+  markDirty(true); renderDecor(true); pushPresence(true); renderPanel(true);
+}
+function renderFoods() {
+  const kind = mode === "food-meal" ? "meal" : "snack";
+  const key = kind + JSON.stringify([S.coins, S.pantry, S.tried, S.fav]);
+  if (renderFoods.key === key) return; renderFoods.key = key;
+  $("food-title").textContent = kind === "meal" ? "Pick a meal" : "Pick a treat";
+  const host = $("foods"); host.textContent = "";
+  for (const [id, f] of Object.entries(FOODS)) {
+    if (f.kind !== kind) continue;
+    const b = document.createElement("button"); b.type = "button"; b.className = "game-card";
+    const c = document.createElement("canvas"); c.width = 11; c.height = 10; c.style.width = "26px"; c.style.height = "24px"; c.setAttribute("aria-hidden", "true");
+    art(c.getContext("2d"), ART[f.art], 0, 0);
+    const t = document.createElement("div"); const n = document.createElement("b"); n.textContent = f.name;
+    const sp = document.createElement("span");
+    const bits = []; if (f.hunger) bits.push(`+${f.hunger} hunger`); if (f.happy) bits.push(`+${f.happy} happy`); if (f.weight < 0) bits.push("light"); if (f.sugar > 1) bits.push("very sweet");
+    sp.textContent = bits.join(" · ");
+    const pr = document.createElement("em");
+    const have = S.pantry[id] || 0;
+    pr.textContent = have ? `${have} gifted` : f.price ? `${f.price} coins` : "Free";
+    if (id === S.fav && S.tried[id]) pr.textContent += " · favourite";
+    t.append(n, sp, pr); b.append(c, t);
+    b.addEventListener("click", () => { audioOn(); feed(id); });
+    host.appendChild(b);
+  }
+}
+function feed(id) {
+  const f = FOODS[id]; if (!f) return;
+  mode = "main";
+  const w = why(); if (w) { refreshAll(); return deny(w); }
+  if (fussRefuse()) return refuse(`${pn()} is throwing a tantrum. Try scolding it.`);
+  if (f.kind === "meal" && S.hunger >= 4) return refuse(`${pn()} is full.`);
+  if (f.kind === "snack" && S.sick) return refuse(`${pn()} feels too sick for treats.`);
+  const fromPantry = (S.pantry[id] || 0) > 0;
+  if (!fromPantry && f.price && (S.coins || 0) < f.price) { refreshAll(); sfx("no"); return toast(`${f.name} costs ${f.price} coins. You have ${S.coins || 0}.`); }
+  if (id === S.dislike && Math.random() < 0.6) { S.tried[id] = 1; return refuse(`Yuck! ${pn()} doesn't like ${f.name.toLowerCase()}.`); }
+  if (fromPantry) S.pantry[id]--; else if (f.price) spend(f.price);
+  const wasHungry = !!S.calls.hunger;
+  if (f.hunger) { S.hunger = Math.min(4, S.hunger + f.hunger); closeCall("hunger"); S.poopT = Math.min(S.poopT, rand(8, 30)); S.stats.meals = (S.stats.meals || 0) + 1; bumpGoal("meals"); }
+  let happy = f.happy || 0;
+  const firstTime = !S.tried[id]; S.tried[id] = 1;
+  if (id === S.fav) { happy += S.trait === "foodie" ? 2 : 1; S.stats.favFed = (S.stats.favFed || 0) + 1; toast(firstTime ? `${pn()} found its favourite food: ${f.name.toLowerCase()}!` : `Yum! ${pn()}'s favourite!`); spawn("heart", petX, 24, 4, { spread: 16, up: 16 }); }
+  if (happy) { S.happy = Math.min(4, S.happy + happy); closeCall("happy"); }
+  S.weight = Math.max(baseWeight(), Math.min(99, S.weight + (f.weight || 0)));
+  if (f.sugar) { S.snackStreak += f.sugar; S.snackT = 60; if (S.snackStreak >= 5 && Math.random() < 0.35) getSick(Date.now()); else if (S.snackStreak >= 4) toast("That's a lot of sweets. Too many can make it sick."); }
+  if (f.kind === "snack") bumpGoal("snacks");
+  if (wasHungry) earn(2);
+  play("eat", 2200, { food: id }); sfx("eat"); buzz(10); done();
+}
+$("food-cancel").addEventListener("click", () => { mode = "main"; refreshAll(); });
+
+/* ===================== achievements, daily streak, weekly goals ===================== */
+function checkAch() {
+  if (!S) return;
+  for (const [id, name, , test, reward] of ACH) {
+    if (S.ach[id]) continue;
+    let ok = false; try { ok = test(S); } catch (e) {}
+    if (ok) { S.ach[id] = Date.now(); earn(reward); log(Date.now(), `Achievement: ${name}`); toast(`Achievement unlocked: ${name} (+${reward} coins)`); sfx("tune"); markDirty(true); renderAchievements(true); }
+  }
+}
+function checkDaily() {
+  if (!S) return;
+  const today = dayKey(Date.now());
+  if (S.lastDay === today) return;
+  const yesterday = dayKey(Date.now() - DAY);
+  S.streak = S.lastDay === yesterday ? (S.streak || 0) + 1 : 1;
+  S.bestStreak = Math.max(S.bestStreak || 0, S.streak);
+  S.lastDay = today;
+  const bonus = 10 + 5 * Math.min(6, S.streak - 1);
+  S.coins = (S.coins || 0) + bonus;
+  setTimeout(() => toast(S.streak > 1 ? `Day ${S.streak} in a row! +${bonus} coins` : `Welcome! +${bonus} coins for today`), 1200);
+  markDirty(true);
+}
+function bumpGoal(key) {
+  if (!net || !hid || !weekGoals().some(g => g.key === key)) return;
+  net.bumpGoal(hid, weekId(), key);
+}
+function renderGoals() {
+  const card = $("goals-card");
+  card.hidden = !(hid && house);
+  if (card.hidden) return;
+  const host = $("goals"); host.textContent = "";
+  const counts = (house && house.goals) || {};
+  const end = (weekId() + 1) * 7 * DAY - 3 * DAY;
+  $("goals-sub").textContent = `Shared with everyone in your home. Resets in ${fmtDur(end - Date.now())}.`;
+  for (const gl of weekGoals()) {
+    const v = Math.min(gl.target, counts[gl.key] || 0), doneG = v >= gl.target, ck = `${weekId()}:${gl.key}`;
+    const row = document.createElement("div"); row.className = "goal";
+    const t = document.createElement("div"); const b = document.createElement("b"); b.textContent = gl.text;
+    const bar = document.createElement("span"); bar.className = "bar"; const i = document.createElement("i"); i.style.width = `${Math.round(100 * v / gl.target)}%`; bar.appendChild(i);
+    const sm = document.createElement("small"); sm.textContent = `${v} / ${gl.target}`;
+    t.append(b, bar, sm); row.appendChild(t);
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = doneG && !S.claimed[ck] ? "primary" : "ghost";
+    btn.textContent = S.claimed[ck] ? "Claimed" : doneG ? `Claim ${GOAL_REWARD}c` : `${GOAL_REWARD}c`;
+    btn.disabled = !doneG || !!S.claimed[ck];
+    btn.addEventListener("click", () => { if (S.claimed[ck]) return; S.claimed[ck] = Date.now(); earn(GOAL_REWARD); sfx("tune"); toast(`Goal complete! +${GOAL_REWARD} coins`); markDirty(true); renderGoals(); renderPanel(true); });
+    row.appendChild(btn); host.appendChild(row);
+  }
+}
+let achKey = "";
+function renderAchievements(force) {
+  const k = JSON.stringify(S.ach);
+  if (!force && k === achKey) return; achKey = k;
+  const host = $("achievements"); host.textContent = "";
+  let n = 0;
+  for (const [id, name, desc, , reward] of ACH) {
+    const got = !!S.ach[id]; if (got) n++;
+    const li = document.createElement("li"); li.className = got ? "got" : "";
+    const b = document.createElement("b"); b.textContent = name;
+    const sp = document.createElement("span"); sp.textContent = `${desc} · ${reward} coins`;
+    li.append(b, sp); host.appendChild(li);
+  }
+  $("ach-count").textContent = `${n} of ${ACH.length}`;
+  $("streak-line").textContent = S.streak ? `Visit streak: ${S.streak} ${S.streak === 1 ? "day" : "days"} (best ${S.bestStreak}). Come back tomorrow for more coins.` : "";
+}
+
+/* ===================== letters and gifts between players ===================== */
+function otherMembers() { if (!house || !house.members || !me) return []; return Object.keys(house.members).filter(u => u !== me.uid); }
+let mailKey = "";
+function renderMail() {
+  const card = $("mail-card");
+  const others = otherMembers();
+  card.hidden = !(me && hid && others.length);
+  if (card.hidden) return;
+  const key = JSON.stringify([others, others.map(u => memberNames[u]), Object.keys(mail), S.coins]);
+  if (key === mailKey) return; mailKey = key;
+  const sel = $("mail-to"); const cur = sel.value; sel.textContent = "";
+  others.forEach(u => { const o = document.createElement("option"); o.value = u; o.textContent = memberNames[u] || "Friend"; sel.appendChild(o); });
+  if (others.includes(cur)) sel.value = cur;
+  const gs = $("mail-gift"); const gcur = gs.value; gs.textContent = "";
+  const add = (v, t) => { const o = document.createElement("option"); o.value = v; o.textContent = t; gs.appendChild(o); };
+  add("", "No gift"); add("coins:10", "10 coins"); add("coins:25", "25 coins");
+  for (const [id, f] of Object.entries(FOODS)) if (f.price) add(`food:${id}`, `${f.name} (${f.price} coins)`);
+  gs.value = gcur || "";
+  const n = Object.keys(mail).length;
+  $("mail-inbox").hidden = !n;
+  $("mail-inbox").textContent = n ? `${pn()} is holding ${n === 1 ? "a letter" : n + " letters"} for you. Tap your pet to read.` : "";
+}
+$("mail-form").addEventListener("submit", async e => {
+  e.preventDefault(); audioOn();
+  const to = $("mail-to").value, txt = $("mail-text").value.trim().slice(0, 300), gv = $("mail-gift").value;
+  if (!to) return;
+  if (!txt && !gv) return toast("Write a few words or pick a gift first.");
+  let gift = null, cost = 0;
+  if (gv.startsWith("coins:")) { cost = parseInt(gv.slice(6), 10); gift = { type: "coins", n: cost }; }
+  else if (gv.startsWith("food:")) { const id = gv.slice(5); cost = FOODS[id].price; gift = { type: "food", id }; }
+  if (cost && (S.coins || 0) < cost) return toast(`That gift costs ${cost} coins. You have ${S.coins || 0}.`);
+  try {
+    await net.sendMail(to, { from: me.uid, name: me.name, pet: S.name || "", text: txt, gift, t: snow() });
+    if (cost) spend(cost);
+    S.stats.mailSent = (S.stats.mailSent || 0) + 1; bumpGoal("letters");
+    $("mail-text").value = ""; $("mail-gift").value = "";
+    log(Date.now(), `Sent a letter to ${memberNames[to] || "a friend"}`);
+    sfx("ok"); toast(`${pn()} is off to deliver your letter!`); markDirty(true); renderPanel(true);
+  } catch (err) { toast("Couldn't send the letter. Try again."); }
+});
+function openMail() {
+  const ids = Object.keys(mail).sort((a, b) => (mail[a].t || 0) - (mail[b].t || 0));
+  if (!ids.length) return;
+  const id = ids[0], m = mail[id];
+  delete mail[id];
+  net.deleteMail(me.uid, id);
+  let giftText = "";
+  if (m.gift && m.gift.type === "coins" && m.gift.n > 0 && m.gift.n <= 25) { S.coins += m.gift.n; giftText = `\n\nGift: ${m.gift.n} coins`; }
+  if (m.gift && m.gift.type === "food" && FOODS[m.gift.id]) { S.pantry[m.gift.id] = (S.pantry[m.gift.id] || 0) + 1; giftText = `\n\nGift: ${FOODS[m.gift.id].name.toLowerCase()} (find it in the ${FOODS[m.gift.id].kind === "meal" ? "Meal" : "Snack"} menu)`; }
+  const L = { t: Date.now(), text: (m.text || "") + giftText, from: `${m.name || "A friend"}${m.pet ? " & " + m.pet : ""}`, kind: "mail" };
+  S.letters.push(L); if (S.letters.length > 200) S.letters.shift();
+  log(Date.now(), `Got a letter from ${m.name || "a friend"}`);
+  markDirty(true); sfx("tune"); buzz(15); spawn("heart", petX, 26, 5, { spread: 20, up: 16 });
+  $("p-head").textContent = `A letter from ${m.name || "a friend"}`; $("p-body").textContent = L.text.trim() || "(a gift for you)";
+  $("p-sign").textContent = m.name ? `Love, ${m.name}` : ""; $("p-sign").hidden = !m.name; $("modal").hidden = false; setTimeout(() => $("p-close").focus(), 30);
+  renderMail(); refreshAll();
+}
+
+/* ===================== shared photo album ===================== */
+let albumKey = "";
+function renderAlbum() {
+  const card = $("album-card");
+  card.hidden = !(me && hid && house);
+  if (card.hidden) return;
+  const items = Object.entries((house && house.album) || {}).sort((a, b) => (b[1].t || 0) - (a[1].t || 0));
+  const key = JSON.stringify([items.map(i => i[0]), Object.values(memberNames)]);
+  if (key === albumKey) return; albumKey = key;
+  const host = $("album"); host.textContent = "";
+  if (!items.length) { const p = document.createElement("p"); p.className = "small"; p.textContent = "No photos yet. Snap one of your pets together!"; host.appendChild(p); }
+  for (const [id, ph] of items) {
+    if (typeof ph.img !== "string" || !ph.img.startsWith("data:image/png")) continue;
+    const fig = document.createElement("figure");
+    const img = document.createElement("img"); img.src = ph.img; img.alt = ph.caption || "A Pocketling photo";
+    const cap = document.createElement("figcaption");
+    const b = document.createElement("b"); b.textContent = ph.caption || "Untitled";
+    const sp = document.createElement("span"); sp.textContent = `${memberNames[ph.by] || ph.name || "Someone"} · ${new Date(ph.t).toLocaleDateString([], { month: "short", day: "numeric" })}`;
+    cap.append(b, sp);
+    if (me && (ph.by === me.uid || isOwner())) { const del = document.createElement("button"); del.type = "button"; del.className = "link"; del.textContent = "Remove"; del.addEventListener("click", () => { net.deletePhoto(hid, id).catch(() => {}); }); cap.appendChild(del); }
+    fig.append(img, cap); host.appendChild(fig);
+  }
+}
+$("album-snap").addEventListener("click", async () => {
+  audioOn();
+  if (!hid) return;
+  const big = document.createElement("canvas"); big.width = LW * 2; big.height = LH * 2;
+  const x = big.getContext("2d"); x.imageSmoothingEnabled = false; x.drawImage(low, 0, 0, big.width, big.height);
+  const img = big.toDataURL("image/png");
+  try {
+    await net.addPhoto(hid, { by: me.uid, name: me.name, caption: $("album-caption").value.trim().slice(0, 60), img, t: snow() });
+    $("album-caption").value = ""; S.stats.photos = (S.stats.photos || 0) + 1; markDirty(true);
+    sfx("pop"); toast("Added to your album!"); R(g, 0, 0, LW, LH, "#ffffff");
+  } catch (e) { toast("Couldn't add the photo. Try again."); }
+});
+
+/* ===================== phone notifications ===================== */
+function predictAlerts() {
+  if (!alive() || S.paused) return [];
+  const real = S, realRandom = Math.random, realLive = LIVE, nm = pn();
+  const items = [], seen = new Set();
+  try {
+    S = JSON.parse(JSON.stringify(real)); Math.random = () => 0.999; LIVE = false;
+    let t = S.lastSim; const end = t + 26 * HOUR;
+    let prev = { hunger: !!S.calls.hunger, happy: !!S.calls.happy, lights: !!S.calls.lights, poops: S.poops, letter: S.letterPending, form: S.form };
+    while (t < end && S.stage !== "dead") {
+      t += MIN; S.lastSim = t; step(t);
+      const add = (key, title, body) => { if (seen.has(key)) return; seen.add(key); const h = new Date(t).getHours(); if (real.quiet && key !== "lights" && (h >= 22 || h < 8)) return; items.push({ t, title, body }); };
+      if (S.calls.hunger && !prev.hunger) add("hunger", `${nm} is hungry`, "Time for a meal!");
+      if (S.calls.happy && !prev.happy) add("happy", `${nm} is lonely`, "Come play or give it a treat.");
+      if (S.calls.lights && !prev.lights) add("lights", `${nm} fell asleep`, "Turn off the light so it can rest.");
+      if (S.poops >= 2 && prev.poops < 2) add("poops", `${nm} made a mess`, "Clean up before it gets sick.");
+      if (S.letterPending && !prev.letter) add("letter", `${nm} has a letter for you`, "Open Pocketling to read it.");
+      if (S.form !== prev.form) add("grow", `${nm} is growing up!`, "Come see what it turned into.");
+      if (S.starveMin >= 6 * 60) add("starve", `${nm} is starving`, "Please feed it soon!");
+      prev = { hunger: !!S.calls.hunger, happy: !!S.calls.happy, lights: !!S.calls.lights, poops: S.poops, letter: S.letterPending, form: S.form };
+    }
+  } catch (e) { /* ignore */ }
+  finally { S = real; Math.random = realRandom; LIVE = realLive; }
+  return items.slice(0, 12);
+}
+async function renderPushRow() {
+  const btn = $("push-btn"), txt = $("push-text");
+  if (!net || !me) { btn.hidden = true; txt.textContent = "Sign in to get a buzz on your phone when your pet needs you."; return; }
+  const ok = await net.pushSupported();
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent), standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (!ok) { btn.hidden = true; txt.textContent = !net.pushReady ? "Notifications aren't set up on this site yet (see the README)." : ios && !standalone ? "On iPhone, first add Pocketling to your Home Screen (Share, then Add to Home Screen), open it from there, and turn this on." : "This browser can't show notifications."; return; }
+  btn.hidden = false;
+  const on = S.pushOn && Notification.permission === "granted";
+  btn.textContent = on ? "Turn off" : "Turn on";
+  txt.textContent = on ? "On. You'll get a buzz when your pet needs you or a letter arrives." : "Get a buzz on this device when your pet needs you or a letter arrives.";
+}
+$("push-btn").addEventListener("click", async () => {
+  audioOn();
+  if (S.pushOn && Notification.permission === "granted") { S.pushOn = false; markDirty(true); net.saveAlerts(me.uid, []); toast("Notifications off."); return renderPushRow(); }
+  try { await net.enablePush(me.uid); S.pushOn = true; markDirty(true); scheduleAlerts(true); toast("Notifications on!"); }
+  catch (e) { toast(e && e.message === "denied" ? "Notifications are blocked. Allow them in your browser settings, then try again." : "Couldn't turn on notifications."); }
+  renderPushRow();
+});
+
+/* ===================== weather ===================== */
+const WMO = c => c <= 1 ? "clear" : c <= 3 ? "cloudy" : c <= 48 ? "fog" : (c >= 71 && c <= 77) || c === 85 || c === 86 ? "snow" : c >= 95 ? "storm" : "rain";
+async function refreshWeather(force) {
+  if (!S.useWeather || !S.geo) return;
+  if (!force && S.weather && Date.now() - S.weather.t < 30 * MIN) return;
+  if (refreshWeather.busy) return; refreshWeather.busy = true;
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${S.geo.lat}&longitude=${S.geo.lon}&current=weather_code`);
+    const j = await r.json();
+    if (j && j.current && typeof j.current.weather_code === "number") { S.weather = { kind: WMO(j.current.weather_code), t: Date.now() }; saveLocal(); }
+  } catch (e) {}
+  refreshWeather.busy = false;
+}
+$("opt-weather").addEventListener("change", e => {
+  if (!e.target.checked) { S.useWeather = false; markDirty(true); return; }
+  if (!navigator.geolocation) { e.target.checked = false; return toast("This browser can't share your location."); }
+  navigator.geolocation.getCurrentPosition(pos => {
+    S.geo = { lat: Math.round(pos.coords.latitude * 10) / 10, lon: Math.round(pos.coords.longitude * 10) / 10 };
+    S.useWeather = true; markDirty(true); refreshWeather(true); toast("The window now shows your weather.");
+  }, () => { e.target.checked = false; toast("Location was blocked, so local weather is off."); }, { maximumAge: 6 * HOUR, timeout: 15000 });
+});
+
+/* ===================== music ===================== */
+const TRACKS = {
+  morning: { bpm: 104, lead: [72, 0, 76, 0, 79, 0, 76, 74, 72, 0, 74, 76, 74, 0, 72, 0, 69, 0, 72, 0, 74, 0, 72, 69, 67, 0, 69, 72, 69, 0, 0, 0], bass: [48, 0, 0, 0, 55, 0, 0, 0, 53, 0, 0, 0, 55, 0, 0, 0, 45, 0, 0, 0, 52, 0, 0, 0, 50, 0, 0, 0, 55, 0, 0, 0] },
+  day: { bpm: 120, lead: [76, 79, 81, 79, 76, 0, 74, 76, 79, 0, 76, 74, 72, 0, 74, 0, 76, 79, 81, 84, 81, 0, 79, 76, 74, 76, 74, 72, 72, 0, 0, 0], bass: [48, 0, 55, 0, 48, 0, 55, 0, 53, 0, 57, 0, 53, 0, 57, 0, 45, 0, 52, 0, 45, 0, 52, 0, 50, 0, 55, 0, 48, 0, 0, 0] },
+  evening: { bpm: 92, lead: [69, 0, 72, 0, 76, 0, 74, 72, 71, 0, 72, 74, 72, 0, 0, 0, 67, 0, 69, 0, 72, 0, 71, 69, 67, 0, 64, 0, 67, 0, 0, 0], bass: [45, 0, 0, 0, 52, 0, 0, 0, 43, 0, 0, 0, 50, 0, 0, 0, 41, 0, 0, 0, 48, 0, 0, 0, 43, 0, 0, 0, 47, 0, 0, 0] },
+  night: { bpm: 72, lead: [72, 0, 0, 67, 0, 0, 69, 0, 71, 72, 0, 0, 0, 0, 0, 0, 69, 0, 0, 65, 0, 0, 67, 0, 69, 67, 0, 0, 0, 0, 0, 0], bass: [48, 0, 0, 0, 0, 0, 52, 0, 53, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 45, 0, 43, 0, 0, 0, 0, 0, 0, 0] },
+};
+let musicTimer = null, musicStep = 0, musicNext = 0;
+function trackNow() { const h = new Date().getHours(); return h >= 6 && h < 11 ? "morning" : h >= 11 && h < 17 ? "day" : h >= 17 && h < 21 ? "evening" : "night"; }
+function note(midi, at, dur, type, vol) {
+  const o = actx.createOscillator(), gn = actx.createGain();
+  o.type = type; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+  gn.gain.setValueAtTime(0.0001, at); gn.gain.linearRampToValueAtTime(vol, at + 0.02); gn.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  o.connect(gn).connect(actx.destination); o.start(at); o.stop(at + dur + 0.05);
+}
+function startMusic() {
+  if (!S || !S.music || musicTimer || !actx || document.visibilityState !== "visible") return;
+  musicNext = actx.currentTime + 0.1; musicStep = 0;
+  musicTimer = setInterval(() => {
+    if (!actx || actx.state !== "running") return;
+    const tr = TRACKS[trackNow()], stepDur = 60 / tr.bpm / 2;
+    while (musicNext < actx.currentTime + 0.3) {
+      const i = musicStep % tr.lead.length, quiet = (mode === "game" || anim) ? 0.4 : 1;
+      if (tr.lead[i]) note(tr.lead[i], musicNext, stepDur * 1.8, "triangle", 0.018 * quiet);
+      if (tr.bass[i]) note(tr.bass[i], musicNext, stepDur * 3.5, "sine", 0.03 * quiet);
+      musicNext += stepDur; musicStep++;
+    }
+  }, 100);
+}
+function stopMusic() { if (musicTimer) clearInterval(musicTimer); musicTimer = null; }
+$("opt-music").addEventListener("change", e => { S.music = e.target.checked; audioOn(); markDirty(true); if (S.music) setTimeout(startMusic, 100); else stopMusic(); });
+document.addEventListener("pointerdown", () => { if (S && S.music) startMusic(); });
 
 /* ===================== boot ===================== */
 buildDom();
@@ -1593,7 +2056,8 @@ S = loadLocal();
 if (!S) { S = newPet(null); freshLocal = true; }
 const prevSeen = S.lastSeen;
 simulateTo(Date.now()); computeAway(prevSeen); S.lastSeen = Date.now(); saveLocal();
-fitCanvas(); renderAccount(); refreshAll();
+checkDaily();
+fitCanvas(); renderAccount(); refreshAll(); refreshWeather(false);
 requestAnimationFrame(loop);
 if (net) net.onUser(u => { if (u) onSignedIn(u); else onSignedOut(); });
 if (joinHid && !me) setTimeout(() => toast("You've been invited! Sign in with Google to join."), 800);

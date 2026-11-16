@@ -12,6 +12,21 @@
         ".write": "auth != null && auth.uid === $uid"
       }
     },
+    "alerts": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "mail": {
+      "$to": {
+        ".read": "auth != null && auth.uid === $to",
+        "$id": {
+          ".write": "auth != null && ((auth.uid === $to && !newData.exists()) || (!data.exists() && newData.child('from').val() === auth.uid && root.child('users').child(auth.uid).child('house').exists() && root.child('users').child($to).child('house').val() === root.child('users').child(auth.uid).child('house').val()))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['from', 't']) && (!newData.child('text').exists() || (newData.child('text').isString() && newData.child('text').val().length <= 400)))"
+        }
+      }
+    },
     "houses": {
       "$hid": {
         ".read": "auth != null && data.child('members').child(auth.uid).exists()",
@@ -29,6 +44,20 @@
         "presence": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid && (data.parent().parent().child('members').child(auth.uid).exists() || newData.parent().parent().child('members').child(auth.uid).exists())"
+          }
+        },
+        "goals": {
+          "$week": {
+            "$key": {
+              ".write": "auth != null && data.parent().parent().parent().child('members').child(auth.uid).exists()",
+              ".validate": "newData.isNumber() && newData.val() <= 10000"
+            }
+          }
+        },
+        "album": {
+          "$id": {
+            ".write": "auth != null && data.parent().parent().child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('by').val() === auth.uid) || (data.exists() && !newData.exists() && (data.child('by').val() === auth.uid || data.parent().parent().child('owner').val() === auth.uid)))",
+            ".validate": "!newData.exists() || (newData.child('img').isString() && newData.child('img').val().length < 40000 && newData.child('img').val().beginsWith('data:image/png'))"
           }
         }
       }

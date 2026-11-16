@@ -31,7 +31,7 @@
     <div class="screen-card">
       <div class="screen-head">
         <span class="screen-name" id="screen-name">A new egg</span>
-        <span class="pills"><span class="pill friend" id="pill-friend" hidden></span><span class="pill alert" id="pill-alert" hidden>Needs you</span></span>
+        <span class="pills"><span class="pill coin" title="Coins"><i aria-hidden="true"></i><span id="pill-coins">0</span></span><span class="pill friend" id="pill-visit" hidden></span><span class="pill friend" id="pill-friend" hidden></span><span class="pill alert" id="pill-alert" hidden>Needs you</span></span>
       </div>
       <div class="screen-wrap"><canvas id="screen" width="400" height="280" role="img" aria-label="Your pet's room. Tap your pet to cuddle it."></canvas></div>
     </div>
@@ -43,6 +43,10 @@
     </div>
 
     <div class="actions" id="actions" aria-label="Care"></div>
+    <div class="card" id="food-pick" hidden>
+      <div class="pick-head"><h2 id="food-title">Pick a meal</h2><button class="ghost" type="button" id="food-cancel">Back</button></div>
+      <div class="games" id="foods"></div>
+    </div>
     <div class="card" id="game-pick" hidden>
       <div class="pick-head"><h2>Pick a game</h2><button class="ghost" type="button" id="pick-cancel">Back</button></div>
       <div class="games" id="games"></div>
@@ -93,7 +97,10 @@
         <button class="ghost" type="button" id="t-hearts">Send hearts</button>
         <button class="ghost" type="button" id="t-snack">Share a snack</button>
         <button class="ghost" type="button" id="t-dance">Dance together</button>
+        <button class="ghost" type="button" id="t-visit">Visit their room</button>
         <button class="primary" type="button" id="t-catch">Catch stars together</button>
+        <button class="primary" type="button" id="t-race">Tap race</button>
+        <button class="primary" type="button" id="t-tug">Tug of war</button>
         <button class="primary" type="button" id="t-marry" hidden>Propose</button>
         <button class="primary" type="button" id="t-baby" hidden>Start a family</button>
       </div>
@@ -102,6 +109,37 @@
         <input type="text" id="invite-url" readonly aria-label="Invite link">
         <button class="ghost" type="button" id="invite-copy">Copy invite link</button>
       </div>
+    </div>
+
+    <div class="card" id="mail-card" hidden>
+      <h2>Mailbox</h2>
+      <p class="notice" id="mail-inbox" hidden></p>
+      <form id="mail-form" class="mail-form">
+        <div class="two-col">
+          <label>To<select id="mail-to"></select></label>
+          <label>Gift<select id="mail-gift"></select></label>
+        </div>
+        <label for="mail-text">Your letter</label>
+        <textarea id="mail-text" maxlength="300" rows="3" placeholder="Your pet will carry it over and wait until they open it."></textarea>
+        <div class="row-btns"><button class="primary" type="submit">Send with your pet</button></div>
+      </form>
+    </div>
+
+    <div class="card" id="goals-card" hidden>
+      <h2>This week's goals</h2>
+      <p class="small" id="goals-sub"></p>
+      <div id="goals"></div>
+    </div>
+
+    <div class="card" id="album-card" hidden>
+      <details>
+        <summary>Photo album <span class="count">Shared</span></summary>
+        <div class="invite-link" style="margin:0 0 12px">
+          <input type="text" id="album-caption" maxlength="60" placeholder="Caption (optional)" aria-label="Photo caption">
+          <button class="primary" type="button" id="album-snap">Snap the screen</button>
+        </div>
+        <div class="album" id="album"></div>
+      </details>
     </div>
 
     <div class="card" id="family-card" hidden>
@@ -129,6 +167,14 @@
           <button class="ghost" type="button" id="deco-random">Surprise me</button>
           <button class="ghost" type="button" id="deco-reset">Reset</button>
         </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Achievements <span class="count" id="ach-count"></span></summary>
+        <p class="small" id="streak-line"></p>
+        <ul class="ach" id="achievements"></ul>
       </details>
     </div>
 
@@ -170,6 +216,18 @@
       <div class="set-row">
         <div><b>Sound</b><span>Beeps when it needs you, while the page is open</span></div>
         <label class="switch"><input type="checkbox" id="opt-sound" aria-label="Sound"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Phone notifications</b><span id="push-text">Get a buzz when your pet needs you.</span></div>
+        <button class="ghost" id="push-btn" type="button" hidden>Turn on</button>
+      </div>
+      <div class="set-row">
+        <div><b>Music</b><span>A little tune that changes with the time of day</span></div>
+        <label class="switch"><input type="checkbox" id="opt-music" aria-label="Music"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
+        <div><b>Local weather</b><span>Rain, snow and clouds in the window match outside. Uses your rough location.</span></div>
+        <label class="switch"><input type="checkbox" id="opt-weather" aria-label="Local weather"><span class="track"></span></label>
       </div>
       <div class="set-row">
         <div><b>Quiet nights</b><span>No beeps from 10 pm to 8 am</span></div>
@@ -238,7 +296,7 @@
     </div>
 
     <div class="card" id="memories-card" hidden>
-      <h2>In memory</h2>
+      <h2>Memory garden</h2>
       <ul class="memories" id="memories"></ul>
     </div>
   </div>

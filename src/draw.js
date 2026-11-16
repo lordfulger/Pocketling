@@ -26,6 +26,16 @@ export const ART = {
   fish: [".kkk..k.", "kooowkk.", "koooooko", "kooookk.", ".kkk..k."],
   mole: ["..kkkkk..", ".kbbbbbk.", "kbkbbbkbk", "kbbbpbbbk", "kbbwwwbbk", "kbbbbbbbk"],
   bug: [".k...k.", "..k.k..", ".kkkkk.", "kgkgkgk", "kgggggk", ".kkkkk."],
+  pancake: ["...kk....", "..kwwk...", ".kyyyyyk.", "kYYYYYYYk", ".kyyyyyk.", "kYYYYYYYk", ".kkkkkkk."],
+  salad: ["..g.G.g..", ".gGgGgGg.", "kgrgggrgk", "kwwwwwwwk", ".kwwwwwk.", "..kkkkk.."],
+  noodles: ["..k...k..", "...k.k...", "kyYyYyYyk", "kwwwwwwwk", ".kwwwwwk.", "..kkkkk.."],
+  icecream: ["..kkk..", ".kpppk.", "kpwpppk", ".kpppk.", "kYkYkYk", ".kYYYk.", "..kYk..", "...k..."],
+  cookie: [".kkkkk.", "kbBbbbk", "kbbbBbk", "kBbbbbk", "kbbBbbk", ".kkkkk."],
+  berry: ["..gGg..", ".krrrk.", "krwrrrk", "krrrwrk", ".krrrk.", "..krk.."],
+  candy: [".kkk.", "kpwpk", "kwpwk", "kpwpk", ".kkk.", "..k..", "..k..", "..k.."],
+  cake: ["...r...", "..kkk..", ".kwwwk.", "kpppppk", "kwwwwwk", "kpppppk", "kkkkkkk"],
+  coin: [".kkk.", "kyyYk", "kyYyk", "kYyyk", ".kkk."],
+  pumpkin: ["...G....", "..kGk...", ".kokokk.", "kookooko", "kokkokko", "kooookok", ".kkkkkk."],
 };
 
 const FONT_SRC = {
@@ -193,10 +203,13 @@ export const COATS = {
   cocoa:      { name: "Cocoa",      c: ["#bd8f6d", "#8a5f43", "#dfc3ac"], belly: "#f2e3d5" },
   midnight:   { name: "Midnight",   c: ["#646aa3", "#3c4073", "#9298cf"], belly: "#c8ccf3" },
   bubblegum:  { name: "Bubblegum",  c: ["#ff9fd8", "#e266b4", "#ffd6f0"], belly: "#fff0fa" },
+  cherry:     { name: "Cherry",     c: ["#ff7a8a", "#d94a62", "#ffc2cb"], belly: "#fff0f2" },
+  galaxy:     { name: "Galaxy",     c: ["#6a4fb3", "#43307f", "#9d86e6"], belly: "#d9cff8" },
+  gold:       { name: "Gold",       c: ["#ffd24a", "#d99a1a", "#fff1a8"], belly: "#fff8dc" },
 };
-export const HEADWEAR = { none: "None", bow: "Bow", flower: "Flower", wreath: "Flower crown", cap: "Cap", beanie: "Beanie", crown: "Crown", party: "Party hat", phones: "Headphones" };
-export const FACEWEAR = { none: "None", glasses: "Glasses", shades: "Sunglasses", hearteyes: "Heart eyes", freckles: "Freckles", rosy: "Rosy cheeks" };
-export const NECKWEAR = { none: "None", scarf: "Scarf", bowtie: "Bow tie", bell: "Bell collar", pearls: "Pearls" };
+export const HEADWEAR = { none: "None", bow: "Bow", flower: "Flower", wreath: "Flower crown", cap: "Cap", beanie: "Beanie", crown: "Crown", party: "Party hat", phones: "Headphones", sunhat: "Sun hat", tiara: "Tiara", bunnyband: "Bunny band", witch: "Witch hat", santa: "Santa hat", halo: "Halo" };
+export const FACEWEAR = { none: "None", glasses: "Glasses", shades: "Sunglasses", hearteyes: "Heart eyes", freckles: "Freckles", rosy: "Rosy cheeks", monocle: "Monocle", mask: "Hero mask" };
+export const NECKWEAR = { none: "None", scarf: "Scarf", bowtie: "Bow tie", bell: "Bell collar", pearls: "Pearls", lei: "Flower lei", medal: "Gold medal" };
 export const DEFAULT_STYLE = { coat: "natural", head: "none", face: "none", neck: "none" };
 
 /* ===================== creature renderer ===================== */
@@ -215,7 +228,7 @@ export function drawCreature(ctx, sp, cx, by, o = {}) {
   const feet = sp.feet || 0;
   const es = sp.earS || 1;
   const bx = OX, bottom = OY - feet, cy = bottom - ry, top = cy - ry;
-  const hatOn = ["cap", "beanie", "crown", "party", "phones"].includes(st.head) || o.hat;
+  const hatOn = ["cap", "beanie", "crown", "party", "phones", "sunhat", "witch", "santa", "bunnyband"].includes(st.head) || o.hat;
   const isBodyCol = v => v === base || v === shade || v === light;
 
   // behind the body
@@ -308,6 +321,10 @@ export function drawCreature(ctx, sp, cx, by, o = {}) {
     for (let x = eyesAt[0] + 3; x < eyesAt[1] - 1; x++) P.set(x, ey, OUT);
   }
 
+  if (st.face === "monocle") { const ex = eyesAt[1]; for (let x = ex - 1; x <= ex + 2; x++) { P.set(x, ey - 1, "#e9a227"); P.set(x, ey + 3, "#e9a227"); } for (let y = ey; y <= ey + 2; y++) { P.set(ex - 1, y, "#e9a227"); P.set(ex + 2, y, "#e9a227"); } for (let y = ey + 4; y <= ey + 7; y++) P.set(ex + 2, y, "#e9a227"); }
+  if (st.face === "mask") for (let y = ey - 1; y <= ey + 3; y++) for (let x = eyesAt[0] - 2; x <= eyesAt[1] + 3; x++) { const v = P.get(x, y); if (v && v !== OUT && v !== "#ffffff" && v !== "#ef4a63") P.set(x, y, "#ef4a63"); }
+  if (o.elder) { for (const ex of eyesAt) { P.set(ex, ey - 1, "#f4f4f8"); P.set(ex + 1, ey - 1, "#f4f4f8"); P.set(ex + (ex < bx ? -1 : 2), ey - 1, "#f4f4f8"); } }
+
   // muzzle, nose and mouth
   const mx = bx + look;
   let my = faceY + 4;
@@ -352,6 +369,12 @@ export function drawCreature(ctx, sp, cx, by, o = {}) {
     for (let x = -rx; x <= rx; x++) if (isBody(bx + x, neckY)) P.set(bx + x, neckY, "#ef4a63");
     for (const [x, y] of [[-1, 1], [0, 1], [1, 1], [0, 2]]) P.set(bx + x, neckY + y, "#ffd84d");
     P.set(bx, neckY + 2, "#e9a227");
+  } else if (st.neck === "lei") {
+    const cols = ["#ff8fb1", "#ffd84d", "#c8adff", "#ff9b5a"]; let i = 0;
+    for (let x = -rx; x <= rx; x++) { const y = neckY + Math.round((1 - (x * x) / (rx * rx)) * 1.5); if (isBody(bx + x, y)) P.set(bx + x, y, (x & 1) ? "#5fae5a" : cols[i++ % 4]); }
+  } else if (st.neck === "medal") {
+    for (let i = 0; i < 3; i++) { P.set(bx - 2 + i, neckY + i, "#3b8fc9"); P.set(bx + 2 - i, neckY + i, "#ef4a63"); }
+    for (const [x, y] of [[-1, 3], [0, 3], [1, 3], [-1, 4], [0, 4], [1, 4], [0, 5]]) P.set(bx + x, neckY + y, "#ffd84d"); P.set(bx, neckY + 4, "#e9a227");
   } else if (st.neck === "pearls") {
     for (let x = -rx; x <= rx; x++) { const y = neckY + Math.round((1 - (x * x) / (rx * rx)) * 1.5); if (isBody(bx + x, y) && (x & 1) === 0) P.set(bx + x, y, "#ffffff"); }
   }
@@ -373,6 +396,31 @@ export function drawCreature(ctx, sp, cx, by, o = {}) {
     for (let x = -rx + 1; x <= rx - 1; x++) P.set(bx + x, top - 1 + Math.round((x * x) / (rx * rx) * 4), OUT);
     for (const s of [-1, 1]) { const x0 = s < 0 ? bx - rx - 1 : bx + rx - 1; for (let y = cy - 3; y <= cy + 1; y++) for (let x = x0; x <= x0 + 2; x++) P.set(x, y, (y === cy - 3 || y === cy + 1 || x === x0 || x === x0 + 2) ? OUT : "#ef4a63"); }
   }
+  else if (st.head === "sunhat") {
+    for (let x = -rx - 3; x <= rx + 3; x++) { P.set(bx + x, top + 1, "#f2d48a"); P.set(bx + x, top + 2, OUT); }
+    P.set(bx - rx - 4, top + 1, OUT); P.set(bx + rx + 4, top + 1, OUT);
+    for (let y = top - 3; y <= top; y++) for (let x = -Math.round(rx * 0.6); x <= Math.round(rx * 0.6); x++) P.set(bx + x, y, y === top ? "#ff7aa0" : "#f2d48a");
+    for (let x = -Math.round(rx * 0.6) - 1; x <= Math.round(rx * 0.6) + 1; x++) P.set(bx + x, top - 4, OUT);
+    for (let y = top - 3; y <= top; y++) { P.set(bx - Math.round(rx * 0.6) - 1, y, OUT); P.set(bx + Math.round(rx * 0.6) + 1, y, OUT); }
+  } else if (st.head === "tiara") {
+    for (let x = -3; x <= 3; x++) P.set(bx + x, top, "#d6d9e8");
+    for (const x of [-2, 0, 2]) P.set(bx + x, top - 1, "#d6d9e8"); P.set(bx, top - 2, "#d6d9e8"); P.set(bx, top - 1, "#ff7aa0");
+  } else if (st.head === "bunnyband") {
+    for (let x = -rx; x <= rx; x++) if (isBody(bx + x, top + 1)) P.set(bx + x, top + 1, "#ff7aa0");
+    for (const s of [-1, 1]) for (let y = 1; y <= 7; y++) { const x = bx + s * 3 + (y > 5 ? s : 0); P.set(x - 1, top - y, OUT); P.set(x + 1, top - y, OUT); P.set(x, top - y, y < 6 ? "#ffd1e0" : "#ffffff"); }
+    for (const s of [-1, 1]) P.set(bx + s * 3, top - 8, OUT);
+  } else if (st.head === "witch") {
+    for (let x = -rx - 2; x <= rx + 2; x++) { P.set(bx + x, top, "#4a2f7a"); P.set(bx + x, top + 1, OUT); }
+    for (let i = 1; i <= 8; i++) { const w = Math.max(0, Math.round((rx * 0.75) * (1 - i / 9))); const off = i > 6 ? i - 6 : 0; for (let x = -w; x <= w; x++) P.set(bx + x + off, top - i, i === 2 ? "#ffd84d" : "#6b45b0"); P.set(bx - w - 1 + off, top - i, OUT); P.set(bx + w + 1 + off, top - i, OUT); }
+    P.set(bx + 3, top - 9, OUT);
+  } else if (st.head === "santa") {
+    for (let y = top; y <= top + 2; y++) for (let x = -rx; x <= rx; x++) if (isBody(bx + x, y)) P.set(bx + x, y, y === top + 2 ? "#ffffff" : "#ef4a63");
+    for (let i = 1; i <= 5; i++) { const w = Math.max(0, Math.round(rx * 0.6 * (1 - i / 6))); for (let x = -w; x <= w; x++) P.set(bx + x + i, top - i, "#ef4a63"); P.set(bx - w - 1 + i, top - i, OUT); P.set(bx + w + 1 + i, top - i, OUT); }
+    for (const [x, y] of [[6, -6], [7, -6], [6, -7], [7, -7]]) P.set(bx + x, top + y, "#ffffff");
+  } else if (st.head === "halo") {
+    for (let x = -4; x <= 4; x++) if (Math.abs(x) > 1 || true) { P.set(bx + x, top - 5 + (Math.abs(x) === 4 ? 1 : 0), "#ffe066"); }
+    for (let x = -2; x <= 2; x++) P.set(bx + x, top - 4, "#fff6c0");
+  }
   if (st.head === "party" || o.hat) {
     const cols = ["#ff7aa0", "#ffd84d"];
     for (let i = 0; i < 6; i++) { const w = 5 - i; for (let x = -Math.floor(w / 2); x <= Math.floor(w / 2); x++) P.set(bx + x + 1, top - 1 - i, i === 0 ? OUT : cols[i % 2]); }
@@ -380,6 +428,7 @@ export function drawCreature(ctx, sp, cx, by, o = {}) {
   }
   if (o.sick) { const dx = bx + rx - 1, dy = top + 3; P.set(dx, dy, "#5aaee8"); P.set(dx, dy + 1, "#5aaee8"); P.set(dx - 1, dy + 1, "#8fdcf4"); }
 
+  if (o.elder) { const x0 = bx - rx - 3; for (let y = cy - 2; y <= OY; y++) P.set(x0, y, "#8b5a3c"); P.set(x0 + 1, cy - 3, "#8b5a3c"); P.set(x0 + 2, cy - 2, "#8b5a3c"); }
   P.blit(ctx, Math.round(cx), Math.round(by), OX, OY, o);
   return { headY: Math.round(by) - (OY - top) - (sp.ears === "bunny" && !hatOn ? Math.round(10 * es) : sp.ears === "fox" || sp.ears === "cat" ? Math.round(5 * es) : 0), rx, ry, eyeY: Math.round(by) - (OY - ey) };
 }
@@ -426,6 +475,9 @@ export const WALLS = {
   leaves:  { name: "Leaves",       base: "#f2f8e4", ink: "#a9d77f" },
   stars:   { name: "Starry",       base: "#2d3274", ink: "#fff3b0" },
   peach:   { name: "Plain peach",  base: "#ffe7d8", ink: "#ffe7d8" },
+  rainbow: { name: "Rainbow",      base: "#fff3f8", ink: "#ffd6e0" },
+  ocean:   { name: "Ocean",        base: "#cfeeff", ink: "#9fd6f5" },
+  candy:   { name: "Candy stripes", base: "#ffffff", ink: "#ffc7d9" },
 };
 export const FLOORS = {
   wood:    { name: "Light wood",   base: "#f6dcc0", ink: "#e6c8a4" },
@@ -435,13 +487,15 @@ export const FLOORS = {
   grass:   { name: "Grass",        base: "#aadd80", ink: "#86c45c" },
   carpet:  { name: "Blue carpet",  base: "#bcc9f4", ink: "#a5b5ec" },
   marble:  { name: "Marble",       base: "#f3f3f7", ink: "#d8d8e4" },
+  cloud:   { name: "Cloud floor",  base: "#e6f2ff", ink: "#ffffff" },
+  sakura:  { name: "Petal wood",   base: "#f6dcc0", ink: "#e6c8a4" },
 };
 export const WINDOWS = { square: "Square", round: "Round", arch: "Arched", twin: "Two panes", none: "No window" };
 export const CURTAINS = { pink: { name: "Pink", c: "#ffb3c9" }, blue: { name: "Blue", c: "#9fc8f5" }, mint: { name: "Mint", c: "#9fe3c0" }, yellow: { name: "Yellow", c: "#ffe07a" }, lace: { name: "Lace", c: "#ffffff" }, none: { name: "None" } };
-export const ARTS = { heart: "Heart frame", photo: "Photo of us", clock: "Clock", shelf: "Shelf", rainbow: "Rainbow", mirror: "Mirror", love: "LOVE banner", none: "Nothing" };
-export const CEILINGS = { none: "Nothing", lights: "Fairy lights", bunting: "Bunting", garland: "Heart garland", lanterns: "Lanterns" };
-export const ITEMS = { plant: "Plant", cactus: "Cactus", lamp: "Lamp", books: "Bookshelf", fish: "Fishbowl", teddy: "Teddy", bed: "Bed", gift: "Gift", speaker: "Speaker", none: "Nothing" };
-export const RUGS = { none: "None", round: "Round pink", oval: "Oval blue", stripes: "Striped", heart: "Heart", star: "Star" };
+export const ARTS = { heart: "Heart frame", photo: "Photo of us", clock: "Clock", shelf: "Shelf", rainbow: "Rainbow", mirror: "Mirror", love: "LOVE banner", moon: "Moon painting", poster: "Star poster", none: "Nothing" };
+export const CEILINGS = { none: "Nothing", lights: "Fairy lights", bunting: "Bunting", garland: "Heart garland", lanterns: "Lanterns", clouds: "Fluffy clouds", disco: "Disco ball" };
+export const ITEMS = { plant: "Plant", cactus: "Cactus", lamp: "Lamp", books: "Bookshelf", fish: "Fishbowl", teddy: "Teddy", bed: "Bed", gift: "Gift", speaker: "Speaker", piano: "Piano", tv: "TV", castle: "Toy castle", tree: "Pine tree", none: "Nothing" };
+export const RUGS = { none: "None", round: "Round pink", oval: "Oval blue", stripes: "Striped", heart: "Heart", star: "Star", rainbow: "Rainbow" };
 export const DEFAULT_DECOR = { wall: "dots", floor: "wood", window: "square", curtain: "pink", art: "heart", ceiling: "none", left: "plant", right: "none", rug: "none" };
 
 export const STAR_PTS = [[4, 4], [13, 12], [22, 3], [33, 9], [41, 2], [50, 14], [59, 5], [68, 11], [76, 3], [8, 24], [27, 28], [46, 22], [63, 30], [74, 20], [36, 34], [15, 35]];
@@ -463,6 +517,9 @@ function drawWall(ctx, key, now) {
   else if (key === "brick") { for (let y = 0, r = 0; y < 40; y += 5, r++) { ctx.fillRect(0, y, LW, 1); for (let x = r % 2 ? 0 : 5; x < LW; x += 10) ctx.fillRect(x, y, 1, 5); } }
   else if (key === "leaves") { for (let y = 4, r = 0; y < 36; y += 8, r++) for (let x = r % 2 ? 5 : 0; x < LW; x += 10) { ctx.fillRect(x, y + 1, 1, 1); ctx.fillRect(x + 1, y, 1, 2); ctx.fillRect(x + 2, y, 1, 1); } }
   else if (key === "stars") { for (const [x, y] of STAR_PTS) { ctx.globalAlpha = ((Math.floor(now / 700) + x) % 5 === 0) ? .3 : 1; ctx.fillRect(x, y, 1, 1); } ctx.globalAlpha = 1; }
+  else if (key === "rainbow") { const cols = ["#ffd6e0", "#ffe8c7", "#fff6c2", "#dcf7d2", "#d6ecff", "#e8dcff"]; for (let y = 0; y < 40; y++) R(ctx, 0, y, LW, 1, cols[Math.floor(y / 7) % 6]); }
+  else if (key === "ocean") { for (let y = 5; y < 38; y += 7) for (let x = 0; x < LW; x++) ctx.fillRect(x, y + Math.round(Math.sin((x + y + now / 300) / 4)), 1, 1); for (const [x, y] of [[12, 30], [40, 18], [66, 26]]) { R(ctx, x, y, 3, 2, "#ff9b5a"); R(ctx, x + 3, y, 1, 2, "#ef7d3a"); } }
+  else if (key === "candy") { for (let y = 0; y < 40; y++) for (let x = 0; x < LW; x++) if (((x + y) >> 2) % 2 === 0) ctx.fillRect(x, y, 1, 1); }
 }
 function drawFloor(ctx, key) {
   const f = FLOORS[key] || FLOORS.wood;
@@ -474,6 +531,8 @@ function drawFloor(ctx, key) {
   else if (key === "grass") { for (const [x, y] of [[3, 44], [11, 49], [19, 45], [27, 52], [35, 46], [44, 50], [52, 44], [60, 49], [68, 45], [75, 52], [7, 53], [57, 54]]) { ctx.fillRect(x, y, 1, 2); ctx.fillRect(x + 1, y - 1, 1, 2); } R(ctx, 15, 47, 1, 1, "#ffffff"); R(ctx, 63, 52, 1, 1, "#ffd84d"); R(ctx, 40, 54, 1, 1, "#ff9fbb"); }
   else if (key === "carpet") { for (let i = 0; i < 70; i++) ctx.fillRect((i * 37) % LW, 42 + (i * 13) % 14, 1, 1); }
   else if (key === "marble") { for (let i = 0; i < 4; i++) for (let s = 0; s < 14; s++) ctx.fillRect((i * 23 + s * 2 + (s % 3)) % LW, 42 + s, 1, 1); }
+  else if (key === "cloud") { for (const [x, y] of [[6, 46], [26, 50], [48, 45], [66, 51], [14, 54], [58, 55]]) { ctx.fillRect(x, y, 6, 2); ctx.fillRect(x + 1, y - 1, 3, 1); } }
+  else if (key === "sakura") { for (let y = 45, r = 0; y < LH; y += 4, r++) { ctx.fillRect(0, y, LW, 1); for (let x = r % 2 ? 9 : 2; x < LW; x += 18) ctx.fillRect(x, y - 3, 1, 3); } for (const [x, y] of [[5, 44], [19, 49], [33, 46], [47, 53], [61, 47], [74, 51], [27, 54], [69, 43]]) { R(ctx, x, y, 2, 1, "#ffb3c9"); R(ctx, x, y + 1, 1, 1, "#ff8fb1"); } }
 }
 function windowShape(key) {
   if (key === "round") return { w: 19, h: 18, inside: (x, y) => (x - 9) ** 2 + (y - 9) ** 2 <= 72 };
@@ -481,10 +540,12 @@ function windowShape(key) {
   if (key === "twin") return { w: 21, h: 16, inside: (x, y) => (x < 9 || x > 11) && y >= 0 && y < 16 };
   return { w: 21, h: 16, inside: () => true };
 }
-function drawWindow(ctx, key, curtain) {
+function drawWindow(ctx, key, curtain, now, fx) {
   if (key === "none") return;
   const sh = windowShape(key), wx = 7, wy = 5;
-  const sky = skyAt(new Date());
+  const sky = Object.assign({}, skyAt(new Date()));
+  const wk = fx && fx.weather;
+  if (wk === "cloudy" || wk === "rain" || wk === "storm" || wk === "fog") { sky.top = mix(sky.top, "#8f98ab", 0.45); sky.bot = mix(sky.bot, "#aab2c2", 0.45); }
   const ins = (x, y) => x >= 0 && y >= 0 && x < sh.w && y < sh.h && sh.inside(x, y);
   const cur = CURTAINS[curtain];
   if (cur && cur.c) { R(ctx, wx - 4, wy - 1, 3, sh.h + 4, cur.c); R(ctx, wx + sh.w + 1, wy - 1, 3, sh.h + 4, cur.c); if (curtain === "lace") { ctx.fillStyle = "#e9e4f2"; for (let y = wy; y < wy + sh.h + 3; y += 2) { ctx.fillRect(wx - 3, y, 1, 1); ctx.fillRect(wx + sh.w + 2, y, 1, 1); } } }
@@ -500,6 +561,13 @@ function drawWindow(ctx, key, curtain) {
     const cxo = Math.floor(Date.now() / 4000) % (sh.w + 8) - 6;
     for (const [x, y, w] of [[0, 11, 5], [1, 10, 3]]) for (let i = 0; i < w; i++) put(cxo + x + i, y, "#ffffff");
   }
+  if (wk === "cloudy" || wk === "rain" || wk === "storm" || wk === "snow") { const cx0 = Math.floor(now / 5000) % (sh.w + 10) - 8; for (const [x, y, w] of [[0, 2, 6], [1, 1, 4], [9, 4, 5]]) for (let i = 0; i < w; i++) put(cx0 + x + i, y, wk === "snow" ? "#eef2f8" : "#c9cfdb"); }
+  if (wk === "rain" || wk === "storm") for (let i = 0; i < 14; i++) { const x = (i * 5 + Math.floor(now / 90)) % sh.w, y = (i * 7 + Math.floor(now / 40)) % sh.h; put(x, y, "#9cc7f0"); put(x, y + 1, "#9cc7f0"); }
+  if (wk === "storm" && now % 5000 < 140) for (let y = 0; y < sh.h; y++) for (let x = 0; x < sh.w; x++) put(x, y, "#f4f6ff");
+  if (wk === "snow" || (fx && fx.holiday === "christmas")) for (let i = 0; i < 12; i++) { const x = (i * 7 + Math.round(Math.sin((now / 900) + i) * 2)) % sh.w, y = (i * 5 + Math.floor(now / 160)) % sh.h; put((x + sh.w) % sh.w, y, "#ffffff"); }
+  if (wk === "fog") for (let y = 0; y < sh.h; y += 2) for (let x = (y / 2) % 2; x < sh.w; x += 2) put(x, y, "#dfe3ea");
+  if (fx && fx.holiday === "halloween") for (let i = 0; i < 2; i++) { const bx2 = Math.floor((now / 120 + i * 9) % (sh.w + 6)) - 3, by2 = 3 + i * 5 + Math.round(Math.sin(now / 200 + i) * 1.5), f = Math.floor(now / 150) % 2; put(bx2, by2, OUT); put(bx2 - 1, by2 - f, OUT); put(bx2 + 1, by2 - f, OUT); }
+  if (fx && fx.holiday === "newyear") { const cols = ["#ff7aa0", "#ffd84d", "#8fdcf4", "#7ccf6c"]; for (let i = 0; i < 2; i++) { const ph = (now / 900 + i * 0.5) % 1, cx1 = 5 + i * 9, cy1 = 4 + i * 2, r = Math.round(ph * 4); if (ph < 0.8) for (let a = 0; a < 8; a++) put(cx1 + Math.round(Math.cos(a * Math.PI / 4) * r), cy1 + Math.round(Math.sin(a * Math.PI / 4) * r), cols[(i + a) % 4]); } }
   const mid = Math.floor(sh.w / 2);
   if (key !== "twin") for (let y = 0; y < sh.h; y++) put(mid, y, "#ffffff");
   for (let x = 0; x < sh.w; x++) put(x, Math.floor(sh.h * 0.45), "#ffffff");
@@ -534,6 +602,13 @@ function drawArt(ctx, key) {
   } else if (key === "love") {
     R(ctx, x - 3, y + 2, 19, 9, "#ff9fbb"); R(ctx, x - 3, y + 11, 3, 2, "#ff9fbb"); R(ctx, x + 13, y + 11, 3, 2, "#ff9fbb");
     text(ctx, "LOVE", x - 1, y + 4, "#ffffff");
+  } else if (key === "moon") {
+    R(ctx, x - 1, y - 1, 16, 14, "#c08a5c"); R(ctx, x, y, 14, 12, "#28306a");
+    for (let yy = -4; yy <= 4; yy++) for (let xx = -4; xx <= 4; xx++) if (xx * xx + yy * yy <= 16 && (xx - 2) * (xx - 2) + (yy + 1) * (yy + 1) > 9) R(ctx, x + 7 + xx, y + 6 + yy, 1, 1, "#fff3b0");
+    for (const [sx, sy] of [[2, 2], [11, 3], [3, 9], [12, 9]]) R(ctx, x + sx, y + sy, 1, 1, "#ffffff");
+  } else if (key === "poster") {
+    R(ctx, x - 1, y - 1, 15, 15, "#ff9fbb"); R(ctx, x, y, 13, 13, "#ffe3ec"); art(ctx, ART.star, x + 4, y + 3); text(ctx, "WOW", x + 1, y + 8, "#ef4a63");
+    R(ctx, x + 5, y - 2, 3, 2, "#ffffffaa");
   }
 }
 function drawCeiling(ctx, key, now, glow) {
@@ -548,12 +623,19 @@ function drawCeiling(ctx, key, now, glow) {
     for (let x = 2, i = 0; x < LW - 3; x += 6, i++) { const y = sag(x) + 1; R(ctx, x, y, 5, 1, cols[i % 5]); R(ctx, x + 1, y + 1, 3, 1, cols[i % 5]); R(ctx, x + 2, y + 2, 1, 1, cols[i % 5]); }
   } else if (key === "garland") {
     for (let x = 4; x < LW - 3; x += 8) art(ctx, ART.heart, x - 2, sag(x) + 1);
+  } else if (key === "clouds") {
+    [[14, 5], [40, 3], [64, 6]].forEach(([x, y], i) => { const yy = y + Math.round(Math.sin(now / 900 + i)); R(ctx, x, 0, 1, yy, "#c9c3d6"); R(ctx, x - 4, yy, 9, 3, "#ffffff"); R(ctx, x - 2, yy - 1, 5, 1, "#ffffff"); R(ctx, x - 4, yy + 3, 9, 1, "#dfe6f2"); });
+  } else if (key === "disco") {
+    R(ctx, 40, 0, 1, 3, "#8b7a6e");
+    for (let yy = -3; yy <= 3; yy++) for (let xx = -3; xx <= 3; xx++) if (xx * xx + yy * yy <= 10) R(ctx, 40 + xx, 6 + yy, 1, 1, ((xx + yy + Math.floor(now / 200)) & 1) ? "#e4e8f2" : "#9aa3b5");
+    const cols = ["#ff7aa0", "#8fdcf4", "#ffd84d", "#c8adff"];
+    for (let i = 0; i < 10; i++) { const a = now / 1500 + i * 0.63, r = 10 + (i % 4) * 7; const px = 40 + Math.round(Math.cos(a) * r * 1.6), py = 14 + Math.round(Math.sin(a) * r * 0.5); if (py < 40 && px >= 0 && px < LW) { ctx.globalAlpha = glow ? 0.9 : 0.6; R(ctx, px, py, 1, 1, cols[i % 4]); ctx.globalAlpha = 1; } }
   } else if (key === "lanterns") {
     const cols = ["#ff9fbb", "#ffd84d", "#c8adff"];
     [34, 48, 72].forEach((x, i) => { const y = 3 + (i % 2) * 2; R(ctx, x, 0, 1, y, "#8b7a6e"); R(ctx, x - 2, y, 5, 6, cols[i]); R(ctx, x - 3, y + 1, 7, 4, cols[i]); R(ctx, x - 2, y + 2, 5, 1, "rgba(255,255,255,.5)"); R(ctx, x - 1, y + 6, 3, 1, "#8b7a6e"); if (glow) { ctx.globalAlpha = .3; R(ctx, x - 4, y - 1, 9, 9, cols[i]); ctx.globalAlpha = 1; } });
   }
 }
-const ITEM_W = { plant: 8, cactus: 7, lamp: 7, books: 12, fish: 11, teddy: 9, bed: 22, gift: 8, speaker: 7, none: 0 };
+const ITEM_W = { plant: 8, cactus: 7, lamp: 7, books: 12, fish: 11, teddy: 9, bed: 22, gift: 8, speaker: 7, piano: 15, tv: 12, castle: 11, tree: 11, none: 0 };
 function drawItem(ctx, key, side, now, glow) {
   const w = ITEM_W[key] || 0; if (!w) return;
   const x = side === "left" ? 1 : LW - w - 1;
@@ -579,6 +661,21 @@ function drawItem(ctx, key, side, now, glow) {
     R(ctx, x + 2, 44, 18, 6, "#ffffff"); R(ctx, x + 2, 50, 18, 1, "#c08a5c");
     R(ctx, x + 2, 42, 6, 3, "#ffffff"); R(ctx, x + 2, 42, 6, 1, "#e4dfee");
     R(ctx, x + 7, 44, 13, 5, "#ff9fbb"); for (let i = 0; i < 3; i++) art(ctx, [".r.r", "rrrr", ".rr."], x + 9 + i * 4, 45, { tint: "#ef7f9e" });
+  } else if (key === "piano") {
+    R(ctx, x, 36, 15, 10, "#3a3550"); R(ctx, x + 1, 37, 13, 2, "#4f4870"); R(ctx, x + 1, 42, 13, 3, "#ffffff");
+    for (let i = 0; i < 6; i++) R(ctx, x + 2 + i * 2, 42, 1, 2, OUT);
+    R(ctx, x + 1, 46, 2, 6, "#3a3550"); R(ctx, x + 12, 46, 2, 6, "#3a3550");
+  } else if (key === "tv") {
+    R(ctx, x, 38, 12, 9, OUT); const t = Math.floor(now / 700) % 3; R(ctx, x + 1, 39, 10, 7, ["#8fd3ff", "#ffb3c9", "#b8e6a0"][t]);
+    R(ctx, x + 2 + t * 2, 41, 3, 3, "#ffffff"); R(ctx, x + 2, 47, 8, 1, OUT); R(ctx, x + 3, 48, 6, 4, "#a36d45"); R(ctx, x + 3, 37, 1, 1, OUT); R(ctx, x + 8, 37, 1, 1, OUT); R(ctx, x + 4, 36, 1, 1, OUT); R(ctx, x + 7, 36, 1, 1, OUT);
+  } else if (key === "castle") {
+    R(ctx, x + 1, 42, 9, 10, "#c8adff"); R(ctx, x, 39, 3, 13, "#b394f2"); R(ctx, x + 8, 39, 3, 13, "#b394f2");
+    for (const tx of [0, 2, 8, 10]) R(ctx, x + tx, 38, 1, 1, "#b394f2");
+    R(ctx, x + 4, 47, 3, 5, "#7a5cc4"); R(ctx, x + 1, 36, 1, 3, OUT); R(ctx, x + 2, 36, 2, 1, "#ef4a63");
+  } else if (key === "tree") {
+    for (let i = 0; i < 12; i++) { const w = Math.floor(i / 2) + 1; R(ctx, x + 5 - w, 36 + i, w * 2 + 1, 1, i % 4 === 3 ? "#3f8f45" : "#4fa85a"); }
+    R(ctx, x + 4, 48, 3, 4, "#8b5a3c"); art(ctx, ART.star, x + 3, 32);
+    const cols = ["#ef4a63", "#ffd84d", "#8fdcf4"]; for (let i = 0; i < 6; i++) R(ctx, x + 3 + (i * 3) % 6, 39 + i * 1.6, 1, 1, cols[(i + Math.floor(now / 500)) % 3]);
   } else if (key === "speaker") {
     R(ctx, x, 40, 7, 12, OUT); R(ctx, x + 1, 41, 5, 10, "#4a4466");
     for (const [cy2, r] of [[44, 1.6], [48, 2.2]]) for (let yy = -2; yy <= 2; yy++) for (let xx = -2; xx <= 2; xx++) if (xx * xx + yy * yy <= r * r) R(ctx, x + 3 + xx, cy2 + yy, 1, 1, "#9a94b5");
@@ -594,18 +691,34 @@ function drawRug(ctx, key) {
     else if (key === "stripes") { inside = Math.abs(xx) <= 17 && Math.abs(yy) <= 3; col = ((xx + 40) >> 2) % 2 ? "#ffd84d" : "#ffffff"; if (Math.abs(yy) === 3) col = "#ef9b3a"; }
     else if (key === "heart") { const X = xx / 13, Y = -yy / 3.6; inside = (X * X + Y * Y - 1) ** 3 - X * X * Y * Y * Y <= 0; col = "#ff7aa0"; }
     else if (key === "star") { const a = Math.atan2(yy * 4, xx), rr = Math.sqrt(xx * xx + yy * yy * 16); inside = rr <= 10 + 5 * Math.cos(a * 5); col = "#ffd84d"; }
+    else if (key === "rainbow") { const e = Math.sqrt((xx * xx) / 361 + ((yy - 4) * (yy - 4)) / 64); inside = yy <= 4 && e <= 1; col = ["#9474e0", "#3b8fc9", "#7ccf6c", "#ffd84d", "#ff9b5a", "#ef4a63"][Math.min(5, Math.floor(e * 6))]; }
     if (inside) R(ctx, c0 + xx, cyy + yy, 1, 1, col);
   }
 }
-export function drawRoom(ctx, now, d) {
+export function holidayAt(d) {
+  const m = d.getMonth() + 1, day = d.getDate();
+  if (m === 2 && day >= 10 && day <= 14) return "valentine";
+  if (m === 10 && day >= 25) return "halloween";
+  if (m === 12 && day >= 18 && day <= 26) return "christmas";
+  if ((m === 12 && day === 31) || (m === 1 && day === 1)) return "newyear";
+  return null;
+}
+function drawHoliday(ctx, now, h, d) {
+  if (h === "valentine") { if (d.ceiling === "none") for (let x = 4; x < LW - 3; x += 8) art(ctx, ART.heart, x - 2, 2 + Math.round(Math.sin((x / LW) * Math.PI) * 3)); for (const [x, y] of [[34, 14], [44, 22], [52, 12]]) art(ctx, ART.heart, x, y + Math.round(Math.sin(now / 600 + x) * 1), { tint: "#ffb3c9" }); }
+  if (h === "halloween") { art(ctx, ART.pumpkin, 46, 45); for (let i = 0; i < 6; i++) { R(ctx, LW - 1 - i, i, 1, 1, "#d8d8e4"); R(ctx, LW - 1 - i * 2, 0, 1, 1, "#d8d8e4"); R(ctx, LW - 1, i * 2, 1, 1, "#d8d8e4"); } }
+  if (h === "christmas") { const x = 34, y = 8; for (let a = 0; a < 16; a++) R(ctx, x + Math.round(Math.cos(a * Math.PI / 8) * 4), y + Math.round(Math.sin(a * Math.PI / 8) * 4), 1, 1, a % 4 === 0 ? "#ef4a63" : "#3f8f45"); R(ctx, x - 1, y + 4, 3, 2, "#ef4a63"); if (d.right === "none" && d.left !== "tree") drawItem(ctx, "tree", "right", now, false); }
+  if (h === "newyear") { const n = new Date(); const yr = String(n.getMonth() === 11 ? n.getFullYear() + 1 : n.getFullYear()); text(ctx, yr, Math.round((LW - textW(yr)) / 2), 26, "#e9a227"); }
+}
+export function drawRoom(ctx, now, d, fx = {}) {
   drawWall(ctx, d.wall, now);
-  drawWindow(ctx, d.window, d.curtain);
+  drawWindow(ctx, d.window, d.curtain, now, fx);
   drawArt(ctx, d.art);
   drawCeiling(ctx, d.ceiling, now, false);
   drawFloor(ctx, d.floor);
   drawRug(ctx, d.rug);
   drawItem(ctx, d.left, "left", now, false);
   drawItem(ctx, d.right, "right", now, false);
+  if (fx.holiday) drawHoliday(ctx, now, fx.holiday, d);
 }
 export function drawGlow(ctx, now, d) {
   drawCeiling(ctx, d.ceiling, now, true);

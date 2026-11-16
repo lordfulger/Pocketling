@@ -7,4 +7,7 @@ window.POCKETLING_FIREBASE = {
   databaseURL: "https://your-project-default-rtdb.firebaseio.com",
   projectId: "your-project",
   appId: "PASTE_APP_ID",
+  messagingSenderId: "PASTE_SENDER_ID",
+  // For phone notifications: Project settings > Cloud Messaging > Web Push certificates > Key pair.
+  vapidKey: "",
 };

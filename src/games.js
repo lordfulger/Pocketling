@@ -60,6 +60,7 @@ const catchStars = {
     const seed = coop ? opts.co.seed : rnd(1, 1e9);
     return { coop, id: coop ? opts.co.id : null, seed, start: coop ? opts.co.start : env.snow() + 1500, dur, stars: starSchedule(seed, dur, coop), mine: [], x: coop ? (opts.co.host ? 26 : 54) : CX, flash: 0, target: coop ? 16 : 8 };
   },
+  coSync: st => ({ x: Math.round(st.x), caught: st.mine.slice(0, 120) }),
   caught(st, env) { const s = new Set(st.mine); if (st.coop) { const p = env.partner && env.partner(); if (p && Array.isArray(p.caught)) for (const i of p.caught) if (Number.isInteger(i)) s.add(i); } return s; },
   visible(st, env) {
     const e = env.snow() - st.start, got = this.caught(st, env), out = [];
@@ -474,5 +475,66 @@ const fish = {
   },
 };
 
-export const GAMES = [guess, catchStars, hop, memory, simon, whack, timing, shell, hilo, rps, flap, fish];
+/* ---------- Two-player: Tap race ---------- */
+function versusIntro(g, env, st) {
+  const e = env.snow() - st.start;
+  if (e < 0) { panel(g, CX - 26, 14, 52, 22); textC(g, env.partner() ? "GET READY" : "WAITING", 18, "#8f2f4f"); textC(g, String(Math.ceil(-e / 1000)), 26, OUT); }
+  else if (e < 1200) { panel(g, CX - 20, 18, 40, 12); textC(g, "GO!", 21, "#2f8a57", 1); }
+}
+const race = {
+  id: "race", name: "Tap race", blurb: "Tap as fast as you can. First to the flag wins.", twoPlayer: true,
+  icon: ["#........", "##.......", "###......", "##.......", "#........", "#........", "#..#..#..", "#.###.###", "#########"],
+  pad: [{ id: "T", label: "Tap! Tap! Tap!" }],
+  create: (env, opts) => ({ coop: true, id: opts.co.id, seed: opts.co.seed, start: opts.co.start, taps: 0, goal: 40, dur: 20000 }),
+  coSync: st => ({ taps: st.taps }),
+  press(st, env) { if (env.snow() < st.start) return; st.taps = Math.min(st.goal, st.taps + 1); env.sfx("click"); },
+  tap(st, env) { this.press(st, env); },
+  tick(st, env) {
+    const p = env.partner(), pt = p ? Math.min(st.goal, p.taps || 0) : 0, e = env.snow() - st.start;
+    if (st.taps >= st.goal || pt >= st.goal || e >= st.dur) st.over = { won: st.taps >= pt, score: st.taps, line: `${st.taps} - ${pt}` };
+  },
+  render(st, env) {
+    const g = env.g, now = env.now(), p = env.partner(), pt = p ? Math.min(st.goal, p.taps || 0) : 0;
+    drawOutdoor(g, now, { scroll: 0 });
+    R(g, 0, 36, LW, 2, "#8fd36b"); R(g, 0, 38, LW, 1, "#6fbf55"); R(g, 0, 46, LW, 1, "#6fbf55");
+    R(g, 70, 8, 1, 46, OUT); for (let y = 8; y < 14; y++) for (let x = 71; x < 77; x++) R(g, x, y, 1, 1, ((x + y) & 1) ? OUT : "#ffffff");
+    const run = Math.floor(now / 120) % 2;
+    if (p) env.partnerMini(8 + Math.round(56 * pt / st.goal), 36 - run, { look: 1, alpha: .95 });
+    env.mini(8 + Math.round(56 * st.taps / st.goal), 54 - (st.taps % 2), { look: 1, eyes: "happy" });
+    text(g, `YOU ${st.taps}`, 2, 2, OUT); const t = `${pt} THEM`; text(g, t, LW - 2 - textW(t), 2, OUT);
+    versusIntro(g, env, st);
+  },
+};
+
+/* ---------- Two-player: Tug of war ---------- */
+const tug = {
+  id: "tug", name: "Tug of war", blurb: "Tap to pull the rope to your side.", twoPlayer: true,
+  icon: [".........", "##.....##", "##.....##", "#########", "##..#..##", "##.....##", ".........", ".........", "........."],
+  pad: [{ id: "T", label: "Pull! Pull!" }],
+  create: (env, opts) => ({ coop: true, id: opts.co.id, seed: opts.co.seed, start: opts.co.start, taps: 0, dur: 15000, win: 24, host: !!opts.co.host }),
+  coSync: st => ({ taps: st.taps }),
+  press(st, env) { if (env.snow() < st.start) return; st.taps++; env.sfx("click"); env.buzz(4); },
+  tap(st, env) { this.press(st, env); },
+  diff(st, env) { const p = env.partner(); return st.taps - (p ? p.taps || 0 : 0); },
+  tick(st, env) {
+    const d = this.diff(st, env), e = env.snow() - st.start;
+    if (Math.abs(d) >= st.win || e >= st.dur) { const p = env.partner(); st.over = { won: d >= 0, score: st.taps, line: `${st.taps} - ${p ? p.taps || 0 : 0}` }; }
+  },
+  render(st, env) {
+    const g = env.g, now = env.now();
+    drawOutdoor(g, now);
+    const d = Math.max(-st.win, Math.min(st.win, this.diff(st, env)));
+    const off = -Math.round(d * 1.1);
+    R(g, CX - st.win - 4, 48, 1, 5, "#ef4a63"); R(g, CX + st.win + 4, 48, 1, 5, "#ef4a63"); R(g, CX, 49, 1, 3, "#ffffff");
+    for (let x = 12; x < LW - 12; x++) R(g, x + off, 40 + (x % 3 === 0 ? 1 : 0), 1, 1, "#b0814e");
+    R(g, CX + off - 1, 38, 3, 6, "#ef4a63");
+    const strain = Math.floor(now / 100) % 2;
+    env.mini(12 + off - strain, FLOOR, { look: -1, eyes: "squeeze" });
+    if (env.partner()) env.partnerMini(LW - 12 + off + strain, FLOOR, { look: 1, eyes: "squeeze" });
+    text(g, `YOU ${st.taps}`, 2, 2, OUT); const p = env.partner(); const t = `${p ? p.taps || 0 : 0} THEM`; text(g, t, LW - 2 - textW(t), 2, OUT);
+    versusIntro(g, env, st);
+  },
+};
+
+export const GAMES = [guess, catchStars, hop, memory, simon, whack, timing, shell, hilo, rps, flap, fish, race, tug];
 export const GAME_BY_ID = Object.fromEntries(GAMES.map(g => [g.id, g]));

@@ -12,6 +12,15 @@ It runs in any browser and can be installed to a phone's home screen like an app
 - **Decorating**: wallpaper, floors, windows, curtains, wall art, hanging decorations, corner furniture and rugs, plus colours, hats, faces and neckwear for the pet.
 - **Together**: Google sign-in, a shared home with an invite link, pets that visit and play with each other on their own, friendship hearts, marriage, eggs from married pets, and generations that carry on after a pet passes away.
 - **Personal touches**: whoever creates the home can set a welcome note, love letters the pet delivers, a birthday and an anniversary.
+- **Coins and a shop**: earn coins from games, good care, daily visits, achievements and weekly goals. Spend them on 11 foods, new furniture, wallpapers and outfits.
+- **Personalities and tastes**: every pet is playful, foodie, sleepy, neat, cuddly or brave, and has a favourite food and one it hates. Children inherit their parents' personalities.
+- **Old age**: pets get white eyebrows and a walking stick near the end, and past pets rest in a memory garden.
+- **Letters and gifts**: your pet carries a letter, coins or a treat to the other person's room and waits there until they open the app.
+- **Shared photo album, weekly goals for two, and visiting each other's rooms.**
+- **More two-player games**: Tap race and Tug of war.
+- **Achievements and daily streaks.**
+- **Ambience**: the window shows your real local weather (optional), holidays decorate the room automatically, and optional chiptune music changes with the time of day.
+- **Phone notifications** when your pet is hungry, lonely, sleepy or messy, when a letter arrives, and when the other person comes online. This needs one extra setup step (below).
 
 ## One-time setup (about 10 minutes, no coding)
 
@@ -30,7 +39,7 @@ The game saves pets and connects players through [Firebase](https://firebase.goo
 
 ### 3. Create the database
 
-1. Open **Build → Realtime Database** and click **Create database**. Pick the location closest to you and start in **locked mode**.
+1. Open **Build → Realtime Database** and click **Create database**. Pick **United States (us-central1)** and start in **locked mode**.
 2. Open the **Rules** tab, replace everything with the contents of [`database.rules.json`](database.rules.json) from this repo, and click **Publish**.
 
 ### 4. Connect the website to Firebase
@@ -55,6 +64,29 @@ These values aren't secret. The database rules are what keep each person's data 
 
 Tip: on a phone, use **Share → Add to Home Screen** (iPhone) or **Install app** (Android) so it opens like a normal app.
 
+## Phone notifications (optional, about 10 more minutes)
+
+Notifications need a small piece of server code (in [`functions/`](functions/)) that checks on pets every 10 minutes. Firebase only runs server code on its pay-as-you-go **Blaze** plan. For two people this stays inside the free allowance, so it should cost nothing, but Google asks for a card.
+
+1. In the Firebase console, click **Upgrade** next to your plan and choose **Blaze**. While you're there, set a budget alert of $1 so you'd hear about any charge.
+2. Open **Project settings → Cloud Messaging**. Under **Web Push certificates**, click **Generate key pair** and copy the key.
+3. Edit [`public/config.js`](public/config.js) on GitHub again: paste the key into `vapidKey`, and copy `messagingSenderId` from the same `firebaseConfig` block as before. Commit.
+4. Deploy the server code from your browser, with no installs, using Google Cloud Shell:
+   1. Open [shell.cloud.google.com](https://shell.cloud.google.com) while signed in to the same Google account.
+   2. Paste these lines one at a time, replacing `YOUR_PROJECT_ID` with the project ID from Project settings:
+
+      ```bash
+      git clone https://github.com/lordfulger/pocketling && cd pocketling
+      npm --prefix functions install
+      npx firebase-tools login --no-localhost
+      npx firebase-tools deploy --only functions,database --project YOUR_PROJECT_ID
+      ```
+
+      The login step prints a link: open it, allow access, and paste the code back. The deploy takes a few minutes. If it asks to enable APIs, answer yes.
+5. On each phone, open the site and go to **Settings → Phone notifications → Turn on**. On iPhone this only works from the Home Screen app (Share → Add to Home Screen first, then open it from there).
+
+Keep the Realtime Database in the **United States (us-central1)** location so the server code can listen to it without extra settings.
+
 ## Moving a pet from the old Claude page
 
 On the old page, open **Settings → Move to another device → Copy save code**. On the new site, open the same setting, choose **Load a save code** and paste it.
@@ -69,7 +101,8 @@ npm run dev        # builds and serves dist/ locally
 
 - `src/draw.js` holds the pixel art: animals, eggs, rooms and decorations.
 - `src/games.js` holds the mini-games.
-- `src/net.js` handles Firebase sign-in, saving, homes and live presence.
+- `src/net.js` handles Firebase sign-in, saving, homes, live presence, letters, the album, goals and notifications.
+- `functions/index.js` is the server code that sends phone notifications.
 - `src/main.js` holds the pet simulation, the interface and multiplayer.
 - `public/` holds the page, styles, icons and the offline service worker.
 
