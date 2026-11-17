@@ -66,6 +66,21 @@ export function createNet(config) {
     addPhoto(hid, photo) { return set(push(ref(db, `houses/${hid}/album`)), photo); },
     deletePhoto(hid, id) { return remove(ref(db, `houses/${hid}/album/${id}`)); },
 
+    // generic access to shared parts of a home (chat, jar, events, garden, family pet, party)
+    home(hid) {
+      const r = rel => ref(db, `houses/${hid}/${rel}`);
+      return {
+        set: (rel, v) => set(r(rel), v),
+        update: (rel, v) => update(r(rel), v),
+        push: (rel, v) => set(push(r(rel)), v),
+        remove: rel => remove(r(rel)),
+        tx: (rel, fn) => runTransaction(r(rel), fn),
+        watch: (rel, cb, last) => onValue(last ? query(r(rel), limitToLast(last)) : r(rel), s => cb(s.val()), () => {}),
+      };
+    },
+    saveBackup(uid, day, json) { return set(ref(db, `users/${uid}/backups/${day}`), { json, t: Date.now() }).catch(() => {}); },
+    async listBackups(uid) { try { const s = await get(ref(db, `users/${uid}/backups`)); return s.val() || {}; } catch (e) { return {}; } },
+    removeBackup(uid, day) { return remove(ref(db, `users/${uid}/backups/${day}`)).catch(() => {}); },
     sendMail(to, msg) { return set(push(ref(db, `mail/${to}`)), msg); },
     watchMail(uid, cb) { return onValue(ref(db, `mail/${uid}`), s => cb(s.val() || {}), () => {}); },
     deleteMail(uid, id) { return remove(ref(db, `mail/${uid}/${id}`)).catch(() => {}); },

@@ -59,6 +59,40 @@
             ".write": "auth != null && data.parent().parent().child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('by').val() === auth.uid) || (data.exists() && !newData.exists() && (data.child('by').val() === auth.uid || data.parent().parent().child('owner').val() === auth.uid)))",
             ".validate": "!newData.exists() || (newData.child('img').isString() && newData.child('img').val().length < 40000 && newData.child('img').val().beginsWith('data:image/png'))"
           }
+        },
+        "chat": {
+          "$id": {
+            ".write": "auth != null && data.parent().parent().child('members').child(auth.uid).exists() && !data.exists() && newData.child('by').val() === auth.uid",
+            ".validate": "newData.hasChildren(['by','t']) && newData.child('t').isNumber() && ((newData.child('text').isString() && newData.child('text').val().length <= 200) || (newData.child('emote').isString() && newData.child('emote').val().length <= 10))"
+          }
+        },
+        "jar": {
+          "$to": {
+            "$id": {
+              ".write": "auth != null && data.parent().parent().parent().child('members').child(auth.uid).exists() && data.parent().parent().parent().child('members').child($to).exists() && ((!data.exists() && newData.child('from').val() === auth.uid && $to !== auth.uid) || (data.exists() && !newData.exists() && (auth.uid === $to || data.child('from').val() === auth.uid)))",
+              ".validate": "!newData.exists() || (newData.child('text').isString() && newData.child('text').val().length <= 200)"
+            }
+          }
+        },
+        "events": {
+          "$id": {
+            ".write": "auth != null && data.parent().parent().child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('by').val() === auth.uid) || (data.exists() && !newData.exists() && (data.child('by').val() === auth.uid || data.parent().parent().child('owner').val() === auth.uid)))",
+            ".validate": "!newData.exists() || (newData.child('name').isString() && newData.child('name').val().length <= 40 && newData.child('date').isString() && newData.child('date').val().length === 10)"
+          }
+        },
+        "garden": {
+          "$plot": {
+            ".write": "auth != null && data.parent().parent().child('members').child(auth.uid).exists()",
+            ".validate": "!newData.exists() || ($plot.length === 1 && $plot >= '0' && $plot <= '5' && newData.child('seed').isString() && newData.child('planted').isNumber())"
+          }
+        },
+        "familyPet": {
+          ".write": "auth != null && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "!newData.exists() || (newData.child('name').isString() && newData.child('name').val().length <= 14 && newData.child('family').isString() && newData.child('care').isNumber())"
+        },
+        "party": {
+          ".write": "auth != null && data.parent().child('members').child(auth.uid).exists()",
+          ".validate": "!newData.exists() || (newData.child('by').val() === auth.uid && newData.child('until').isNumber() && newData.child('until').val() <= now + 900000)"
         }
       }
     }

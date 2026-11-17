@@ -536,5 +536,92 @@ const tug = {
   },
 };
 
-export const GAMES = [guess, catchStars, hop, memory, simon, whack, timing, shell, hilo, rps, flap, fish, race, tug];
+/* ---------- Two-player: Memory race (same deck, first to 6 pairs) ---------- */
+const memoryRace = {
+  id: "memrace", name: "Memory race", blurb: "Same cards for both of you. First to find all 6 pairs wins.", twoPlayer: true,
+  icon: memory.icon, pad: [], tapHint: "Tap two cards to find a match",
+  create(env, opts) {
+    const r = mulberry(opts.co.seed), ids = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5];
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    return { coop: true, id: opts.co.id, seed: opts.co.seed, start: opts.co.start, cards: ids.map(i => ({ icon: i, up: false, done: false })), open: [], lock: 0, moves: 0, pairs: 0, limit: 75000 };
+  },
+  coSync: st => ({ pairs: st.pairs }),
+  cell: memory.cell,
+  tap(st, env, x, y) {
+    if (env.snow() < st.start || st.lock) return;
+    const i = st.cards.findIndex((c, k) => { const p = this.cell(k); return x >= p.x && x < p.x + 14 && y >= p.y && y < p.y + 13; });
+    if (i < 0) return;
+    const c = st.cards[i]; if (c.up || c.done) return;
+    c.up = true; st.open.push(i); env.sfx("click");
+    if (st.open.length === 2) {
+      st.moves++;
+      const [a, b] = st.open;
+      if (st.cards[a].icon === st.cards[b].icon) { st.cards[a].done = st.cards[b].done = true; st.open = []; st.pairs++; env.sfx("win"); }
+      else st.lock = env.now() + 650;
+    }
+  },
+  tick(st, env) {
+    if (st.lock && env.now() > st.lock) { for (const i of st.open) st.cards[i].up = false; st.open = []; st.lock = 0; }
+    const p = env.partner(), pp = p ? p.pairs || 0 : 0, e = env.snow() - st.start;
+    if (st.pairs >= 6 || pp >= 6 || e > st.limit) st.over = { won: st.pairs >= pp && st.pairs > 0, score: st.pairs, line: `${st.pairs} - ${pp} PAIRS` };
+  },
+  render(st, env) {
+    const g = env.g, p = env.partner(), pp = p ? p.pairs || 0 : 0;
+    pinkBg(g); bar(g, 1 - Math.max(0, env.snow() - st.start) / st.limit, "#ff7aa0");
+    st.cards.forEach((c, i) => {
+      const q = this.cell(i);
+      R(g, q.x, q.y, 14, 13, OUT);
+      if (c.up || c.done) { R(g, q.x + 1, q.y + 1, 12, 11, c.done ? "#e3f8e6" : "#ffffff"); const ic = MEM_ICONS[c.icon]; art(g, ic, q.x + 7 - Math.ceil(ic[0].length / 2), q.y + 6 - Math.ceil(ic.length / 2) + 1); }
+      else { R(g, q.x + 1, q.y + 1, 12, 11, "#9fc8f5"); R(g, q.x + 2, q.y + 2, 10, 9, "#bcd9fa"); art(g, ART.star, q.x + 5, q.y + 4, { tint: "#ffffff" }); }
+    });
+    R(g, 0, LH - 6, LW, 6, "rgba(43,35,64,.7)"); text(g, `YOU ${st.pairs}`, 2, LH - 6 + 1, "#ffffff"); const t = `${pp} THEM`; text(g, t, LW - 2 - textW(t), LH - 5, "#ffffff");
+    versusIntro(g, env, st);
+  },
+};
+
+/* ---------- Two-player: Fishing contest (same bites, fastest reel wins) ---------- */
+const fishContest = {
+  id: "fishduel", name: "Fishing contest", blurb: "Same pond, same bites. Reel in more fish than your partner.", twoPlayer: true,
+  icon: fish.icon, pad: [{ id: "R", label: "Reel in!" }],
+  create(env, opts) {
+    const r = mulberry(opts.co.seed);
+    const bites = Array.from({ length: 5 }, (_, i) => i * 4800 + 1600 + Math.floor(r() * 2200));
+    return { coop: true, id: opts.co.id, seed: opts.co.seed, start: opts.co.start, bites, got: [], tried: [], caught: 0, dur: 5 * 4800 + 600, msg: "", msgT: 0 };
+  },
+  coSync: st => ({ caught: st.caught }),
+  cur(st, env) { const e = env.snow() - st.start; return st.bites.findIndex(b => e >= b - 2000 && e < b + 1600); },
+  press(st, env) {
+    const e = env.snow() - st.start; if (e < 0) return;
+    const i = this.cur(st, env); if (i < 0 || st.tried[i]) return;
+    st.tried[i] = true;
+    const d = e - st.bites[i];
+    if (d >= 0 && d <= 700) { st.got[i] = true; st.caught++; st.msg = "GOT ONE!"; env.sfx("win"); env.spawn("spark", 56, 30, 4, { up: 8 }); }
+    else { st.msg = d < 0 ? "TOO SOON" : "TOO SLOW"; env.sfx("lose"); }
+    st.msgT = env.now();
+  },
+  tap(st, env) { this.press(st, env); },
+  tick(st, env) {
+    const e = env.snow() - st.start, p = env.partner(), pc = p ? p.caught || 0 : 0;
+    if (e >= st.dur) st.over = { won: st.caught >= pc, score: st.caught, line: `${st.caught} - ${pc} FISH` };
+  },
+  render(st, env) {
+    const g = env.g, now = env.now(), e = env.snow() - st.start, p = env.partner(), pc = p ? p.caught || 0 : 0;
+    drawOutdoor(g, now);
+    R(g, 0, 32, LW, 24, "#6fb7ea"); for (let i = 0; i < 10; i++) R(g, (i * 17 + Math.floor(now / 200)) % LW, 36 + (i * 7) % 18, 3, 1, "#a8dcff");
+    R(g, 0, 30, 24, 4, "#a36d45"); R(g, 56, 30, 24, 4, "#a36d45");
+    env.mini(10, 30, { look: 1, eyes: st.msg === "GOT ONE!" && now - st.msgT < 900 ? "happy" : "open" });
+    if (p) env.partnerMini(70, 30, { look: -1 });
+    const i = this.cur(st, env);
+    const biting = i >= 0 && e >= st.bites[i] && e < st.bites[i] + 700;
+    const by = biting ? 37 : 34;
+    R(g, CX - 1, by - 2, 3, 2, "#ef4a63"); R(g, CX - 1, by, 3, 1, "#ffffff");
+    for (let k = 0; k <= 12; k++) { R(g, 16 + k * 1.9, 22 + (by - 22) * (k / 12) - Math.sin(k / 12 * Math.PI) * 5, 1, 1, "#ffffff"); R(g, 64 - k * 1.9, 22 + (by - 22) * (k / 12) - Math.sin(k / 12 * Math.PI) * 5, 1, 1, "#ffe0e8"); }
+    if (biting) text(g, "!", CX - 1, 18, "#ef4a63", 2);
+    text(g, `YOU ${st.caught}`, 2, 2, OUT); const t = `${pc} THEM`; text(g, t, LW - 2 - textW(t), 2, OUT);
+    if (st.msg && now - st.msgT < 900) textC(g, st.msg, 10, st.msg === "GOT ONE!" ? "#2f8a57" : "#ef4a63");
+    versusIntro(g, env, st);
+  },
+};
+
+export const GAMES = [guess, catchStars, hop, memory, simon, whack, timing, shell, hilo, rps, flap, fish, race, tug, memoryRace, fishContest];
 export const GAME_BY_ID = Object.fromEntries(GAMES.map(g => [g.id, g]));

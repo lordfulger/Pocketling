@@ -1,6 +1,6 @@
 // Cloud Functions for Pocketling: phone notifications.
 // - petAlerts: every 10 minutes, sends any pet alerts that have come due (the app schedules them ahead of time).
-// - mailAlert: tells someone when a letter arrives.
+// - mailAlert: tells someone when a letter or a "thinking of you" ping arrives.
 // - visitAlert: tells home members when someone opens Pocketling (at most every 3 hours).
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onValueCreated } = require("firebase-functions/v2/database");
@@ -50,6 +50,7 @@ exports.petAlerts = onSchedule({ schedule: "every 10 minutes", timeoutSeconds: 1
 
 exports.mailAlert = onValueCreated("/mail/{to}/{id}", async event => {
   const m = event.data.val() || {};
+  if (m.ping) { await sendTo(event.params.to, { title: `${m.name || "Someone"} is thinking of you`, body: m.pet ? `${m.pet} sends a big hug too.` : "Open Pocketling to send one back.", tag: "ping" }); return; }
   const body = m.text ? String(m.text).slice(0, 120) : m.gift ? "They sent you a gift!" : "Open Pocketling to read it.";
   await sendTo(event.params.to, { title: `${m.name || "Someone"} sent you a letter`, body, tag: "mail" });
 });

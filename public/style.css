@@ -305,3 +305,41 @@ html { -webkit-tap-highlight-color: transparent; }
 .memories li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; }
 .memories canvas { width: 52px; height: 44px; image-rendering: pixelated; border-radius: 8px; background: var(--surface-2); }
 .memories li div { min-width: 0; display: grid; }
+
+/* v6: adventures, garden, chat, jar, family pet, compare, tour, photo */
+.goal .days { font-weight: 900; font-size: 15px; color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.goal .link { display: inline; font-size: 12px; margin-top: 2px; }
+#adventures > .bar { display: block; margin: 4px 0 10px; }
+.garden-canvas { display: block; width: 100%; max-width: 320px; aspect-ratio: 80 / 56; margin: 4px auto 10px; image-rendering: pixelated; border-radius: 12px; border: 1px solid var(--line); }
+.seed-row { display: grid; gap: 4px; font-weight: 800; font-size: 14px; margin-bottom: 10px; }
+.seed-row select, #fampet-family, #fampet-newname { font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); width: 100%; min-width: 0; }
+.plots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.plot { display: grid; gap: 2px; text-align: left; padding: 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; min-height: 58px; cursor: pointer; }
+.plot b { font-size: 13px; overflow-wrap: anywhere; }
+.plot span { font-size: 11px; color: var(--muted); }
+.plot.thirsty { border-color: #5aaee8; }
+.plot.ready { border-color: var(--good); box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 30%, transparent); }
+.chat-log { max-height: 220px; overflow-y: auto; display: grid; gap: 6px; padding: 2px; margin-bottom: 8px; }
+.chat-msg { justify-self: start; max-width: 85%; padding: 6px 10px; border-radius: 14px 14px 14px 4px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; overflow-wrap: anywhere; }
+.chat-msg.mine { justify-self: end; border-radius: 14px 14px 4px 14px; border-color: var(--accent); }
+.chat-msg b { display: block; font-size: 11px; color: var(--muted); }
+.emotes { display: flex; flex-wrap: wrap; gap: 6px; }
+.emotes button { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+#jar-label { font-weight: 800; font-size: 14px; }
+.compare { width: 100%; border-collapse: collapse; font-size: 14px; }
+.compare th, .compare td { padding: 6px 4px; border-top: 1px solid var(--line); text-align: center; overflow-wrap: anywhere; }
+.compare th:first-child, .compare td:first-child { text-align: left; color: var(--muted); }
+.compare td.win { font-weight: 900; color: var(--accent); }
+.photo-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px dashed var(--line); margin-top: 8px; }
+.photo-row b { display: block; font-size: 14px; }
+.photo-row span { display: block; color: var(--muted); font-size: 13px; }
+.photo-row canvas { width: 54px; height: 39px; image-rendering: pixelated; border-radius: 6px; grid-row: span 2; }
+.photo-row canvas[hidden] + div { grid-column: 1 / -1; }
+.file-btn { display: inline-flex; align-items: center; justify-content: center; grid-column: 1 / -1; justify-self: start; cursor: pointer; }
+.file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+#backup-list { display: grid; width: 100%; }
+.tour { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; z-index: 60; background: var(--surface); color: var(--ink); border: 2px solid var(--accent); border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.tour p { margin: 0 0 8px; font-size: 15px; }
+.tour-btns { display: flex; gap: 8px; align-items: center; }
+.tour-btns small { margin-right: auto; color: var(--muted); }
+.tour-target { position: relative; z-index: 50; outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 14px; }

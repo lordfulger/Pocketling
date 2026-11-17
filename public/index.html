@@ -88,6 +88,42 @@
       <p class="small" id="sync" style="margin:12px 0 0;font-size:12px"></p>
     </div>
 
+    <div class="card" id="adventure-card" hidden>
+      <h2>Adventures</h2>
+      <p class="small" id="adventure-sub"></p>
+      <div id="adventures"></div>
+    </div>
+
+    <div class="card" id="tricks-card" hidden>
+      <details>
+        <summary>Tricks <span class="count">Practise, then show off</span></summary>
+        <p class="small">Practise each trick a few times (one try every 30 minutes). Once it's learned, show it off for coins and a happy heart, and to anyone visiting.</p>
+        <div id="tricks"></div>
+      </details>
+    </div>
+
+    <div class="card" id="garden-card">
+      <details>
+        <summary>Garden <span class="count">Grow food and flowers</span></summary>
+        <p class="small" id="garden-sub"></p>
+        <canvas id="garden-canvas" class="garden-canvas" width="80" height="56" aria-hidden="true"></canvas>
+        <label class="seed-row">Seeds to plant<select id="seed-pick"></select></label>
+        <div class="plots" id="plots"></div>
+      </details>
+    </div>
+
+    <div class="card" id="countdown-card">
+      <details>
+        <summary>Countdowns <span class="count">Things to look forward to</span></summary>
+        <div id="countdowns"></div>
+        <form class="invite-link" id="event-form" style="margin-top:10px">
+          <input type="text" id="event-name" maxlength="40" placeholder="Our trip, date night…" aria-label="What's happening">
+          <input type="date" id="event-date" aria-label="Date">
+          <button class="primary" type="submit">Add</button>
+        </form>
+      </details>
+    </div>
+
     <div class="card" id="together">
       <h2>Play together</h2>
       <div id="together-body"></div>
@@ -101,14 +137,80 @@
         <button class="primary" type="button" id="t-catch">Catch stars together</button>
         <button class="primary" type="button" id="t-race">Tap race</button>
         <button class="primary" type="button" id="t-tug">Tug of war</button>
+        <button class="primary" type="button" id="t-memrace">Memory race</button>
+        <button class="primary" type="button" id="t-fishduel">Fishing contest</button>
         <button class="primary" type="button" id="t-marry" hidden>Propose</button>
         <button class="primary" type="button" id="t-baby" hidden>Start a family</button>
       </div>
       <p class="small" id="together-note" style="margin-top:10px"></p>
+      <div class="together-btns" id="home-extras" hidden>
+        <button class="ghost" type="button" id="t-think">Thinking of you</button>
+        <button class="ghost" type="button" id="t-party">Throw a party (20c)</button>
+      </div>
+      <p class="notice" id="party-note" hidden></p>
       <div class="invite-link" id="invite-row" hidden>
         <input type="text" id="invite-url" readonly aria-label="Invite link">
         <button class="ghost" type="button" id="invite-copy">Copy invite link</button>
       </div>
+    </div>
+
+    <div class="card" id="chat-card" hidden>
+      <h2>Chat</h2>
+      <div class="chat-log" id="chat-log" aria-live="polite"></div>
+      <div class="emotes" id="emotes">
+        <button type="button" class="ghost" data-emote="wave">Wave</button>
+        <button type="button" class="ghost" data-emote="heart">Heart</button>
+        <button type="button" class="ghost" data-emote="kiss">Kiss</button>
+        <button type="button" class="ghost" data-emote="laugh">Laugh</button>
+        <button type="button" class="ghost" data-emote="wow">Wow</button>
+        <button type="button" class="ghost" data-emote="sleepy">Sleepy</button>
+      </div>
+      <form class="invite-link" id="chat-form" style="margin:8px 0 0">
+        <input type="text" id="chat-text" maxlength="200" autocomplete="off" placeholder="Say something sweet" aria-label="Message" enterkeyhint="send">
+        <button class="primary" type="submit">Send</button>
+      </form>
+    </div>
+
+    <div class="card" id="jar-card" hidden>
+      <h2>Reasons jar</h2>
+      <p class="small">Write reasons you love each other. You can each draw one reason a day.</p>
+      <p class="notice" id="jar-count"></p>
+      <button class="primary full" type="button" id="jar-draw">Draw today's reason</button>
+      <form id="jar-form" class="mail-form" style="margin-top:12px">
+        <label for="jar-text" id="jar-label">Add a reason</label>
+        <textarea id="jar-text" maxlength="200" rows="2" placeholder="Because you always…"></textarea>
+        <div class="row-btns"><button class="ghost" type="submit">Put it in the jar</button></div>
+      </form>
+    </div>
+
+    <div class="card" id="fampet-card" hidden>
+      <h2>Family pet</h2>
+      <form id="fampet-adopt" hidden>
+        <p class="small">A pet you share with everyone in your home. It wanders around all your rooms and grows up as you all look after it.</p>
+        <div class="two-col">
+          <label>Name<input type="text" id="fampet-newname" maxlength="14" placeholder="Bean" autocomplete="off"></label>
+          <label>Kind<select id="fampet-family"></select></label>
+        </div>
+        <div class="row-btns"><button class="primary" type="submit">Adopt together</button></div>
+      </form>
+      <div id="fampet-body" hidden>
+        <div class="family-line">
+          <canvas id="fampet-canvas" width="80" height="56" aria-hidden="true"></canvas>
+          <div><b id="fampet-name"></b><span id="fampet-meta"></span></div>
+        </div>
+        <div class="meters">
+          <div class="meter"><span>Fed</span><span class="hearts" id="fampet-hunger"></span></div>
+          <div class="meter"><span>Played</span><span class="hearts" id="fampet-happy"></span></div>
+        </div>
+        <div class="row-btns"><button class="ghost" type="button" id="fampet-feed">Feed</button><button class="ghost" type="button" id="fampet-play">Play</button></div>
+      </div>
+    </div>
+
+    <div class="card" id="compare-card" hidden>
+      <details>
+        <summary>Side by side <span class="count">Compare pets</span></summary>
+        <table class="compare" id="compare"></table>
+      </details>
     </div>
 
     <div class="card" id="mail-card" hidden>
@@ -163,6 +265,12 @@
         </div>
         <div id="deco-room" role="tabpanel" aria-labelledby="tab-room"></div>
         <div id="deco-pet" role="tabpanel" aria-labelledby="tab-pet" hidden></div>
+        <div class="photo-row">
+          <canvas id="photo-preview" width="18" height="13" hidden aria-hidden="true"></canvas>
+          <div><b>Hang your own photo</b><span>Pick a picture of you two. It becomes pixel art on the wall and shows in each other's rooms.</span></div>
+          <label class="ghost file-btn">Choose photo<input type="file" id="photo-file" accept="image/*"></label>
+        </div>
+        <p class="small" id="season-note"></p>
         <div class="row-btns">
           <button class="ghost" type="button" id="deco-random">Surprise me</button>
           <button class="ghost" type="button" id="deco-reset">Reset</button>
@@ -207,7 +315,7 @@
       </details>
     </div>
 
-    <div class="card">
+    <div class="card" id="settings-card">
       <h2>Settings</h2>
       <div class="set-row" id="acct-row">
         <div><b>Account</b><span id="acct-text">Sign in with Google to save your pet and play with friends.</span></div>
@@ -242,6 +350,10 @@
         <label class="switch"><input type="checkbox" id="opt-hints" aria-label="Helpful hints"><span class="track"></span></label>
       </div>
       <div class="set-row">
+        <div><b>Talking</b><span>Your pet says little things in speech bubbles</span></div>
+        <label class="switch"><input type="checkbox" id="opt-talk" aria-label="Talking"><span class="track"></span></label>
+      </div>
+      <div class="set-row">
         <div><b>Visiting pets</b><span>Show friends' pets in your room while they're here</span></div>
         <label class="switch"><input type="checkbox" id="opt-visitors" aria-label="Visiting pets"><span class="track"></span></label>
       </div>
@@ -255,6 +367,17 @@
           <button class="primary" id="code-load" type="button" hidden>Replace my pet with this one</button>
           <p class="status-line" id="code-status" role="status"></p>
         </div>
+      </div>
+      <div class="set-row">
+        <div><b>Backups</b><span>A copy of your pet is saved every day, here and in your account. Restore one if something goes wrong.</span></div>
+        <div class="stack">
+          <button class="ghost" id="backup-open" type="button">See backups</button>
+          <div id="backup-list" hidden></div>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><b>Quick tour</b><span>A short walk through everything on this page</span></div>
+        <button class="ghost" id="tour-again" type="button">Show the tour</button>
       </div>
       <div class="set-row" id="leave-row" hidden>
         <div><b>Leave this home</b><span>Your pet stays with you. You'll need a new invite to come back.</span></div>
@@ -309,6 +432,10 @@
     <p class="p-sign" id="p-sign"></p>
     <div class="p-btns"><button class="primary" id="p-close" type="button">Close</button></div>
   </div>
+</div>
+<div class="tour" id="tour" hidden role="dialog" aria-live="polite" aria-label="Quick tour">
+  <p id="tour-text"></p>
+  <div class="tour-btns"><small id="tour-step"></small><button class="ghost" type="button" id="tour-skip">Skip</button><button class="primary" type="button" id="tour-next">Next</button></div>
 </div>
 <div class="toast" id="toast" hidden role="status"></div>
 <script src="config.js"></script>
